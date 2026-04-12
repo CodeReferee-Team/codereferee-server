@@ -1,0 +1,52 @@
+services:
+  # 1. 애플리케이션 서버
+  codereferee-server:
+    image: ${ECR_REPOSITORY_URL}:latest
+    container_name: codereferee-server
+    ports:
+      - "8080:8080"
+    depends_on:
+      codereferee-db:
+        condition: service_healthy
+      codereferee-redis:
+        condition: service_healthy
+    networks:
+      - codereferee-network
+
+  # 2. 로컬 개발용 DB (PostgreSQL 17)
+  codereferee-db:
+    image: postgres:17-alpine
+    container_name: codereferee-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: codereferee-db
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d codereferee-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codereferee-network
+
+  # 3. Cache 서버 (Redis)
+  codereferee-redis:
+    image: redis:alpine
+    container_name: codereferee-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codereferee-network
+
+networks:
+  codereferee-network:
+    driver: bridge
