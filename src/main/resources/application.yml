@@ -5,8 +5,9 @@ spring:
     name: codereferee-server
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/codereferee-db
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/codereferee_test
+    username: ryu
+    password: 1234
 
   jpa:
     hibernate:
