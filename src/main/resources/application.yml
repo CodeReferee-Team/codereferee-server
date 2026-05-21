@@ -1,6 +1,10 @@
 spring:
   profiles:
     include: secret  # 로컬의 application-secret.yml을 로드 (보안 상 git 제외 대상)
+
+
+
+
   application:
     name: codereferee-server
 

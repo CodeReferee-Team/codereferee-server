@@ -44,4 +44,7 @@ out/
 gen/
 .DS_Store
 
+# Claude Client & Agent Workspace Garbage Clean
 .claude/
+**/AGENTS.md
+AGENTS.md
