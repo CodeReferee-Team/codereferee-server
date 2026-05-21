@@ -13,6 +13,7 @@ public class RefereeService {
 
     private final TaskStatusRepository taskStatusRepository;
     private final PipelineRouter pipelineRouter;
+    private final PipelineMetrics pipelineMetrics;
 
     public String submit(String requirements) {
         String taskId = UUID.randomUUID().toString();
@@ -26,6 +27,7 @@ public class RefereeService {
                 LocalDateTime.now()
         );
         taskStatusRepository.save(initial);
+        pipelineMetrics.recordSubmission();
 
         triggerPipeline(taskId, requirements);
 

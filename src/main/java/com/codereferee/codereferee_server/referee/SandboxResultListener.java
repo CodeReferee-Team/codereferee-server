@@ -15,6 +15,7 @@ public class SandboxResultListener implements MessageListener {
     private final TaskStatusRepository taskStatusRepository;
     private final TaskStatusPgRepository pgRepository;
     private final PipelineRouter pipelineRouter;
+    private final PipelineMetrics pipelineMetrics;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -31,8 +32,15 @@ public class SandboxResultListener implements MessageListener {
                     ? current.withSandboxSuccess()
                     : current.withSandboxFailure(result.errorMessage());
 
+            if (!result.executable()) {
+                pipelineMetrics.recordSandboxFailure();
+            }
+
             AgentStep nextStep = pipelineRouter.routeAfterSandbox(afterSandbox);
             TaskStatus routed = afterSandbox.withStep(nextStep);
+
+            pipelineMetrics.recordTransition(afterSandbox.currentAgent(), nextStep);
+            pipelineMetrics.addIterations(routed.iterationCount());
 
             taskStatusRepository.save(routed);
             pgRepository.upsert(routed);
