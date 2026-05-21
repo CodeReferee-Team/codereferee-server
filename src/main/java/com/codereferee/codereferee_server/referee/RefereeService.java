@@ -12,7 +12,7 @@ import java.util.UUID;
 public class RefereeService {
 
     private final TaskStatusRepository taskStatusRepository;
-    private final PipelineRouter pipelineRouter;
+    private final DraftTaskQueue draftTaskQueue;
     private final PipelineMetrics pipelineMetrics;
 
     public String submit(String requirements) {
@@ -29,7 +29,7 @@ public class RefereeService {
         taskStatusRepository.save(initial);
         pipelineMetrics.recordSubmission();
 
-        triggerPipeline(taskId, requirements);
+        enqueueDraftTask(taskId, requirements, initial.updatedAt());
 
         return taskId;
     }
@@ -38,7 +38,7 @@ public class RefereeService {
         return taskStatusRepository.findById(taskId);
     }
 
-    // TODO: 비동기 에이전트 파이프라인 트리거 (현재 Mock)
-    private void triggerPipeline(String taskId, String requirements) {
+    private void enqueueDraftTask(String taskId, String requirements, LocalDateTime submittedAt) {
+        draftTaskQueue.enqueue(new DraftTaskMessage(taskId, requirements, submittedAt));
     }
 }
