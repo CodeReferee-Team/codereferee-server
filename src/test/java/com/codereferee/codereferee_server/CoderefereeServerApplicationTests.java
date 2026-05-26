@@ -3,8 +3,6 @@ package com.codereferee.codereferee_server;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
@@ -31,17 +29,7 @@ class CoderefereeServerApplicationTests {
     @MockitoBean(answers = Answers.RETURNS_MOCKS) RedisConnectionFactory redisConnectionFactory;
     @MockitoBean ReactiveRedisConnectionFactory reactiveRedisConnectionFactory;
     @MockitoBean AiCoreClient aiCoreClient;
-
-    @TestConfiguration
-    static class NoOpListenerContainer {
-        @Bean("messageListenerContainer")
-        RedisMessageListenerContainer messageListenerContainer(RedisConnectionFactory factory) {
-            RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-            container.setConnectionFactory(factory);
-            container.setAutoStartup(false);
-            return container;
-        }
-    }
+    @MockitoBean RedisMessageListenerContainer redisMessageListenerContainer;
 
     @Test
     void contextLoads() {

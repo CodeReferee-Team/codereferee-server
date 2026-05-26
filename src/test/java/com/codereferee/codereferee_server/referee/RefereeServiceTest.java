@@ -1,5 +1,6 @@
 package com.codereferee.codereferee_server.referee;
 
+import com.codereferee.codereferee_server.config.AiCoreProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -8,17 +9,20 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RefereeServiceTest {
 
     private final TaskStatusRepository taskStatusRepository = mock(TaskStatusRepository.class);
-    private final DraftTaskQueue draftTaskQueue = mock(DraftTaskQueue.class);
+    private final InputQueue inputQueue = mock(InputQueue.class);
     private final PipelineMetrics pipelineMetrics = new PipelineMetrics(new SimpleMeterRegistry());
     private final AiCoreClient aiCoreClient = mock(AiCoreClient.class);
+    private final AiCoreProperties aiCoreProperties =
+            new AiCoreProperties(false, "http://127.0.0.1:8000", "/v1/validations/repository");
     private final RefereeService refereeService =
-            new RefereeService(taskStatusRepository, draftTaskQueue, pipelineMetrics, aiCoreClient);
+            new RefereeService(taskStatusRepository, inputQueue, pipelineMetrics, aiCoreClient, aiCoreProperties);
 
     @Test
     void submitStoresInitialStatusAndEnqueuesDraftTask() {
@@ -39,15 +43,16 @@ class RefereeServiceTest {
         assertThat(status.branch()).isEqualTo("main");
         assertThat(status.commitSha()).isEqualTo("abc123");
 
-        ArgumentCaptor<DraftTaskMessage> draftCaptor = ArgumentCaptor.forClass(DraftTaskMessage.class);
-        verify(draftTaskQueue).enqueue(draftCaptor.capture());
-        DraftTaskMessage draftTask = draftCaptor.getValue();
+        ArgumentCaptor<InputMessage> draftCaptor = ArgumentCaptor.forClass(InputMessage.class);
+        verify(inputQueue).enqueue(draftCaptor.capture());
+        InputMessage draftTask = draftCaptor.getValue();
 
         assertThat(draftTask.taskId()).isEqualTo(requestId);
         assertThat(draftTask.repositoryUrl()).isEqualTo("https://github.com/user/repo");
         assertThat(draftTask.branch()).isEqualTo("main");
         assertThat(draftTask.commitSha()).isEqualTo("abc123");
         assertThat(draftTask.submittedAt()).isEqualTo(status.updatedAt());
+        verify(aiCoreClient, never()).validate(request);
     }
 
     @Test

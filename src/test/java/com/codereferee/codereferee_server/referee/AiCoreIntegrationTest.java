@@ -3,6 +3,7 @@ package com.codereferee.codereferee_server.referee;
 import com.codereferee.codereferee_server.config.AiCoreConfig;
 import com.codereferee.codereferee_server.config.AiCoreProperties;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -21,11 +22,13 @@ class AiCoreIntegrationTest {
             new RepositoryValidationRequest("https://github.com/test/repo", "main", "deadbeef", "req-test-1");
 
     private final TaskStatusRepository taskStatusRepository = mock(TaskStatusRepository.class);
-    private final DraftTaskQueue draftTaskQueue = mock(DraftTaskQueue.class);
+    private final InputQueue inputQueue = mock(InputQueue.class);
     private final PipelineMetrics pipelineMetrics = new PipelineMetrics(new SimpleMeterRegistry());
     private final AiCoreClient aiCoreClient = mock(AiCoreClient.class);
+    private final AiCoreProperties enabledAiCoreProperties =
+            new AiCoreProperties(true, "http://127.0.0.1:8000", "/v1/validations/repository");
     private final RefereeService refereeService =
-            new RefereeService(taskStatusRepository, draftTaskQueue, pipelineMetrics, aiCoreClient);
+            new RefereeService(taskStatusRepository, inputQueue, pipelineMetrics, aiCoreClient, enabledAiCoreProperties);
 
     // ── Test 1: AI core timeout ──────────────────────────────────────────────
 
@@ -68,8 +71,9 @@ class AiCoreIntegrationTest {
     // Run: ./gradlew test --tests "*.AiCoreIntegrationTest.realAiCoreConnectivityCheck"
 
     @Test
+    @Disabled("Manual connectivity check only; Redis worker mode does not require AI Core HTTP by default.")
     void realAiCoreConnectivityCheck() {
-        var properties = new AiCoreProperties("http://127.0.0.1:8000", "/v1/validations/repository");
+        var properties = new AiCoreProperties(true, "http://127.0.0.1:8000", "/v1/validations/repository");
         var realClient = new AiCoreClient(new AiCoreConfig().aiCoreRestClient(properties), properties);
 
         try {

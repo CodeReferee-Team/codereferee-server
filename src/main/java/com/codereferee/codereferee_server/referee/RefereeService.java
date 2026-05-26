@@ -1,5 +1,6 @@
 package com.codereferee.codereferee_server.referee;
 
+import com.codereferee.codereferee_server.config.AiCoreProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageConversionException;
@@ -17,9 +18,10 @@ import java.util.UUID;
 public class RefereeService {
 
     private final TaskStatusRepository taskStatusRepository;
-    private final DraftTaskQueue draftTaskQueue;
+    private final InputQueue inputQueue;
     private final PipelineMetrics pipelineMetrics;
     private final AiCoreClient aiCoreClient;
+    private final AiCoreProperties aiCoreProperties;
 
     public String submit(RepositoryValidationRequest request) {
         String requestId = StringUtils.hasText(request.requestId())
@@ -33,11 +35,15 @@ public class RefereeService {
         taskStatusRepository.save(initial);
         pipelineMetrics.recordSubmission();
 
-        draftTaskQueue.enqueue(new DraftTaskMessage(
+        inputQueue.enqueue(new InputMessage(
                 requestId, request.repositoryUrl(), request.branch(), request.commitSha(), initial.updatedAt()
         ));
 
-        initiateAiValidation(requestId, request, initial);
+        if (aiCoreProperties.enabled()) {
+            initiateAiValidation(requestId, request, initial);
+        } else {
+            log.info("[AiCore] direct HTTP call disabled; requestId={} queued for Redis worker", requestId);
+        }
 
         return requestId;
     }

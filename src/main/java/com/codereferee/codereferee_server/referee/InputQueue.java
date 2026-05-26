@@ -6,13 +6,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class DraftTaskQueue {
+public class InputQueue {
 
-    public static final String QUEUE_KEY = "agent:draft:queue";
+    public static final String QUEUE_KEY = "codereferee:workflow:input";
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void enqueue(DraftTaskMessage message) {
+    public void enqueue(InputMessage message) {
         redisTemplate.opsForList().rightPush(QUEUE_KEY, message);
     }
 }

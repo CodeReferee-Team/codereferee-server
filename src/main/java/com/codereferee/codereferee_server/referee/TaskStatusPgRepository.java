@@ -3,7 +3,7 @@ package com.codereferee.codereferee_server.referee;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.sql.Timestamp;
 import java.util.Map;
@@ -50,7 +50,7 @@ public class TaskStatusPgRepository {
         if (reports == null || reports.isEmpty()) return null;
         try {
             return objectMapper.writeValueAsString(reports);
-        } catch (tools.jackson.core.JacksonException e) {
+        } catch (com.fasterxml.jackson.core.JacksonException e) {
             throw new RuntimeException("Failed to serialize AI reports to JSON", e);
         }
     }

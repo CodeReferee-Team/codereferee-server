@@ -10,15 +10,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class DraftTaskQueueTest {
+class InputQueueTest {
 
     @SuppressWarnings("unchecked")
     @Test
     void enqueuePushesDraftTaskToRedisQueue() {
         RedisTemplate<String, Object> redisTemplate = mock(RedisTemplate.class);
         ListOperations<String, Object> listOperations = mock(ListOperations.class);
-        DraftTaskQueue draftTaskQueue = new DraftTaskQueue(redisTemplate);
-        DraftTaskMessage message = new DraftTaskMessage(
+        InputQueue inputQueue = new InputQueue(redisTemplate);
+        InputMessage message = new InputMessage(
                 "task-1",
                 "https://github.com/test/repo",
                 "main",
@@ -28,8 +28,8 @@ class DraftTaskQueueTest {
 
         when(redisTemplate.opsForList()).thenReturn(listOperations);
 
-        draftTaskQueue.enqueue(message);
+        inputQueue.enqueue(message);
 
-        verify(listOperations).rightPush(DraftTaskQueue.QUEUE_KEY, message);
+        verify(listOperations).rightPush(InputQueue.QUEUE_KEY, message);
     }
 }
