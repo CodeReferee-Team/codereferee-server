@@ -20,7 +20,9 @@ class DraftTaskQueueTest {
         DraftTaskQueue draftTaskQueue = new DraftTaskQueue(redisTemplate);
         DraftTaskMessage message = new DraftTaskMessage(
                 "task-1",
-                "Generate a reliable client",
+                "https://github.com/test/repo",
+                "main",
+                "sha456abc",
                 LocalDateTime.of(2026, 5, 21, 16, 0)
         );
 

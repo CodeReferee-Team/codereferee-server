@@ -8,21 +8,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/referee")
+@RequestMapping("/api/validations")
 @RequiredArgsConstructor
 public class RefereeController {
 
     private final RefereeService refereeService;
 
-    @PostMapping("/submit")
-    public ResponseEntity<Map<String, String>> submit(@Valid @RequestBody SubmitRequest request) {
-        String taskId = refereeService.submit(request.requirements());
-        return ResponseEntity.accepted().body(Map.of("taskId", taskId));
+    @PostMapping("/repository")
+    public ResponseEntity<Map<String, String>> submitValidation(@Valid @RequestBody RepositoryValidationRequest request) {
+        String requestId = refereeService.submit(request);
+        return ResponseEntity.accepted().body(Map.of("requestId", requestId));
     }
 
-    @GetMapping("/status/{taskId}")
-    public ResponseEntity<TaskStatus> getStatus(@PathVariable String taskId) {
-        return refereeService.getStatus(taskId)
+    @GetMapping("/{requestId}")
+    public ResponseEntity<TaskStatus> getStatus(@PathVariable String requestId) {
+        return refereeService.getStatus(requestId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

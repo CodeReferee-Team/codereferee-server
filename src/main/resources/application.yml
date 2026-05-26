@@ -2,9 +2,6 @@ spring:
   profiles:
     include: secret  # 로컬의 application-secret.yml을 로드 (보안 상 git 제외 대상)
 
-
-
-
   application:
     name: codereferee-server
 
@@ -34,3 +31,8 @@ management:
     web:
       exposure:
         include: prometheus
+
+ai:
+  core:
+    base-url: http://127.0.0.1:8000
+    repository-validation-path: /v1/validations/repository
