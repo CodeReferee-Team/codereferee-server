@@ -9,7 +9,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://codereferee-db:5432/codereferee
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: codereferee-redis
       SPRING_DATA_REDIS_PORT: 6379
       SANDBOX_BASE_URL: http://sandbox-python:8000
@@ -54,7 +54,7 @@ services:
     container_name: codereferee-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: codereferee
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
@@ -64,7 +64,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d codereferee"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
     networks:
       - codereferee-network
 
