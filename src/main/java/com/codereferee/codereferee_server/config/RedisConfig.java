@@ -21,7 +21,7 @@ public class RedisConfig {
             SandboxResultListener sandboxResultListener) {
         var container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(sandboxResultListener, new ChannelTopic("sandbox:result"));
+        container.addMessageListener(sandboxResultListener, new ChannelTopic("codereferee:workflow:output"));
         return container;
     }
 

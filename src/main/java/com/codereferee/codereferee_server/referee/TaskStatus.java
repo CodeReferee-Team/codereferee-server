@@ -47,4 +47,9 @@ public record TaskStatus(
     public TaskStatus withFailure(String error) {
         return rebuild(AgentStep.FAILED, false, iterationCount, error);
     }
+
+    public TaskStatus withAiResult(AgentStep step, boolean exec, String error, Map<String, Object> reports) {
+        return new TaskStatus(taskId, step, exec, iterationCount, error, LocalDateTime.now(),
+                repositoryUrl, branch, commitSha, reports);
+    }
 }
