@@ -32,20 +32,18 @@ public record TaskStatus(
         return rebuild(step, executable, iterationCount, errorMessage);
     }
 
-    public TaskStatus withSandboxSuccess() {
-        return rebuild(AgentStep.SANDBOX, true, iterationCount, null);
-    }
-
-    public TaskStatus withSandboxFailure(String error) {
-        return rebuild(AgentStep.SANDBOX, false, iterationCount, error);
-    }
-
     public TaskStatus withNextIteration() {
         return rebuild(currentAgent, executable, iterationCount + 1, errorMessage);
     }
 
+    /** 코드 결함으로 인한 최종 실패 */
     public TaskStatus withFailure(String error) {
         return rebuild(AgentStep.FAILED, false, iterationCount, error);
+    }
+
+    /** 인프라/파이프라인 오류 — 판정 불가, Critic 루프 제외 */
+    public TaskStatus withError(String error) {
+        return rebuild(AgentStep.ERROR, executable, iterationCount, error);
     }
 
     public TaskStatus withAiResult(AgentStep step, boolean exec, String error, Map<String, Object> reports) {

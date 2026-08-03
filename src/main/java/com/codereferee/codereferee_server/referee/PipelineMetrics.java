@@ -39,6 +39,11 @@ public class PipelineMetrics {
         sandboxFailuresTotal.increment();
     }
 
+    /** 최종 판정(PASSED/FAILED/ERROR)별 카운터 — ERROR 비율이 높으면 인프라 문제 신호 */
+    public void recordVerdict(AgentStep verdict) {
+        registry.counter("codereferee.verdicts", "result", verdict.name()).increment();
+    }
+
     /** SANDBOX→CRITIC, CRITIC→REFINER 등 에이전트 전이마다 태그별 카운터 증가 */
     public void recordTransition(AgentStep from, AgentStep to) {
         registry.counter("codereferee.agent.transitions",

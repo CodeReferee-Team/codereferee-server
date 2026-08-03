@@ -1,12 +1,9 @@
 package com.codereferee.codereferee_server.config;
 
-import com.codereferee.codereferee_server.referee.SandboxResultListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -14,16 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
 public class RedisConfig {
-
-    @Bean
-    public RedisMessageListenerContainer messageListenerContainer(
-            RedisConnectionFactory connectionFactory,
-            SandboxResultListener sandboxResultListener) {
-        var container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(sandboxResultListener, new ChannelTopic("codereferee:workflow:output"));
-        return container;
-    }
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(

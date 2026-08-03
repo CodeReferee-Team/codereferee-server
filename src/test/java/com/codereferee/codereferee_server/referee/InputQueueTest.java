@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 
 class InputQueueTest {
 
-    @SuppressWarnings("unchecked")
     @Test
     void enqueuePushesDraftTaskToRedisQueue() {
         RedisTemplate<String, Object> redisTemplate = mock(RedisTemplate.class);
@@ -20,9 +19,9 @@ class InputQueueTest {
         InputQueue inputQueue = new InputQueue(redisTemplate);
         InputMessage message = new InputMessage(
                 "task-1",
-                "https://github.com/test/repo",
+                "https://github.com/phdcoco/QuickByte_Demo",
                 "main",
-                "sha456abc",
+                "d1c5c5e",
                 LocalDateTime.of(2026, 5, 21, 16, 0)
         );
 

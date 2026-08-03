@@ -12,14 +12,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: codereferee-redis
       SPRING_DATA_REDIS_PORT: 6379
-      SANDBOX_BASE_URL: http://sandbox-python:8000
-      AI_CORE_ENABLED: false
     depends_on:
       codereferee-db:
         condition: service_healthy
       codereferee-redis:
-        condition: service_healthy
-      sandbox-python:
         condition: service_healthy
     networks:
       - codereferee-network

@@ -130,3 +130,15 @@ prometheus.yml       # Prometheus 스크레이프 설정
 | HTTP 클라이언트 | RestClient (JDK HttpClient) |
 | 메트릭 | Micrometer + Prometheus |
 | 모니터링 | Grafana |
+
+## 큐 계약 v2 (2026-08)
+
+| 방향 | 키 | 방식 |
+|---|---|---|
+| BE → AI (작업) | `codereferee:workflow:input` | RPUSH / BLPOP (List) |
+| AI → BE (결과) | `codereferee:workflow:output` | **RPUSH / BLPOP (List)** — pub/sub 아님 |
+
+> ⚠️ AI 모듈 변경 필요: 기존 `PUBLISH codereferee:workflow:output` → `RPUSH codereferee:workflow:output`.
+> pub/sub은 BE가 내려가 있는 동안 도착한 결과가 유실되므로 List로 전환함 (장애 시점 리포트 보존 원칙).
+
+결과 메시지 `status` 값: `success`(PASSED) · `fail`(FAILED, 코드 결함) · `error`/`infra_error`(ERROR, 판정 불가 — Critic 루프 제외)

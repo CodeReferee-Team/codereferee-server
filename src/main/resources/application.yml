@@ -32,8 +32,3 @@ management:
       exposure:
         include: prometheus
 
-ai:
-  core:
-    enabled: false
-    base-url: http://192.168.185.48:8000
-    repository-validation-path: /v1/validations/repository
