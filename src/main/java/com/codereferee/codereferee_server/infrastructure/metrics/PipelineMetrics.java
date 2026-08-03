@@ -1,5 +1,6 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.infrastructure.metrics;
 
+import com.codereferee.codereferee_server.domain.validation.AgentStep;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Component;

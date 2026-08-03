@@ -1,5 +1,13 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.application;
 
+import com.codereferee.codereferee_server.api.RepositoryValidationRequest;
+import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
+import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
+import com.codereferee.codereferee_server.infrastructure.redis.InputMessage;
+import com.codereferee.codereferee_server.infrastructure.redis.RedisValidationRequestQueue;
+import com.codereferee.codereferee_server.infrastructure.redis.TaskStatusRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,9 +22,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RefereeService {
 
-    private final TaskStatusRepository taskStatusRepository;
+    private final TaskStatusRedisRepository taskStatusRedisRepository;
     private final TaskStatusPgRepository pgRepository;
-    private final InputQueue inputQueue;
+    private final RedisValidationRequestQueue redisValidationRequestQueue;
     private final PipelineMetrics pipelineMetrics;
 
     public String submit(RepositoryValidationRequest request) {
@@ -27,11 +35,11 @@ public class RefereeService {
                 requestId, AgentStep.QUEUED, false, 0, null, LocalDateTime.now(),
                 request.repositoryUrl(), request.branch(), request.commitSha(), null
         );
-        taskStatusRepository.save(initial);
+        taskStatusRedisRepository.save(initial);
         pgRepository.upsert(initial);
         pipelineMetrics.recordSubmission();
 
-        inputQueue.enqueue(new InputMessage(
+        redisValidationRequestQueue.enqueue(new InputMessage(
                 requestId, request.repositoryUrl(), request.branch(), request.commitSha(), initial.updatedAt()
         ));
         log.info("[Submit] requestId={} repo={} commit={} queued", requestId,
@@ -41,7 +49,7 @@ public class RefereeService {
     }
 
     public Optional<TaskStatus> getStatus(String requestId) {
-        return taskStatusRepository.findById(requestId);
+        return taskStatusRedisRepository.findById(requestId);
     }
 
     /** 같은 repo+commit의 과거 검증 이력 — 재검사 시 이전 로그·리포트 제공용 */

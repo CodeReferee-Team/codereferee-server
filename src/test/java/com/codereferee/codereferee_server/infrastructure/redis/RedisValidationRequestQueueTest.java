@@ -1,4 +1,4 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.infrastructure.redis;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.ListOperations;
@@ -10,13 +10,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class InputQueueTest {
+class RedisValidationRequestQueueTest {
 
     @Test
     void enqueuePushesDraftTaskToRedisQueue() {
         RedisTemplate<String, Object> redisTemplate = mock(RedisTemplate.class);
         ListOperations<String, Object> listOperations = mock(ListOperations.class);
-        InputQueue inputQueue = new InputQueue(redisTemplate);
+        RedisValidationRequestQueue redisValidationRequestQueue = new RedisValidationRequestQueue(redisTemplate);
         InputMessage message = new InputMessage(
                 "task-1",
                 "https://github.com/phdcoco/QuickByte_Demo",
@@ -27,8 +27,8 @@ class InputQueueTest {
 
         when(redisTemplate.opsForList()).thenReturn(listOperations);
 
-        inputQueue.enqueue(message);
+        redisValidationRequestQueue.enqueue(message);
 
-        verify(listOperations).rightPush(InputQueue.QUEUE_KEY, message);
+        verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY, message);
     }
 }

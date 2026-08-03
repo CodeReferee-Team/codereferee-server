@@ -1,4 +1,4 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.infrastructure.redis;
 
 import java.time.LocalDateTime;
 

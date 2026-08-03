@@ -1,5 +1,9 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.infrastructure.redis;
 
+import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
+import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +34,7 @@ public class ResultQueueConsumer {
     private static final Duration POP_TIMEOUT = Duration.ofSeconds(5);
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final TaskStatusRepository taskStatusRepository;
+    private final TaskStatusRedisRepository taskStatusRedisRepository;
     private final TaskStatusPgRepository pgRepository;
     private final PipelineMetrics pipelineMetrics;
     private final ObjectMapper objectMapper;
@@ -77,7 +81,7 @@ public class ResultQueueConsumer {
         String taskId = msg.requestId() != null ? msg.requestId() : msg.jobId();
         log.info("[ResultQueue] received taskId={} status={}", taskId, msg.status());
 
-        TaskStatus current = taskStatusRepository.findById(taskId)
+        TaskStatus current = taskStatusRedisRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalStateException("TaskStatus not found: " + taskId));
 
         AgentStep verdict = mapVerdict(msg.status());
@@ -94,7 +98,7 @@ public class ResultQueueConsumer {
         pipelineMetrics.recordTransition(current.currentAgent(), verdict);
         pipelineMetrics.recordVerdict(verdict);
 
-        taskStatusRepository.save(updated);
+        taskStatusRedisRepository.save(updated);
         pgRepository.upsert(updated);
 
         log.info("[ResultQueue] taskId={} → {} reports={}", taskId, verdict, aiReports.keySet());
