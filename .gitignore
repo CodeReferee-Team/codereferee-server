@@ -43,3 +43,14 @@ out/
 ### System Files ###
 gen/
 .DS_Store
+
+# Claude Client & Agent Workspace Garbage Clean
+.claude/
+**/AGENTS.md
+AGENTS.md
+
+# AI Core Repository (Local Integration Testing)
+codereferee-ai/
+data/
+gradle.properties
+src/main/resources/application-local.yml

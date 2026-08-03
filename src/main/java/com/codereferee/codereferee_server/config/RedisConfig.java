@@ -1,0 +1,51 @@
+package com.codereferee.codereferee_server.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.SerializationException;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@Configuration
+public class RedisConfig {
+
+    @Bean
+    public RedisTemplate<String, Object> redisTemplate(
+            RedisConnectionFactory connectionFactory,
+            ObjectMapper objectMapper) {
+        var template = new RedisTemplate<String, Object>();
+        template.setConnectionFactory(connectionFactory);
+
+        RedisSerializer<Object> jsonSerializer = new RedisSerializer<>() {
+            @Override
+            public byte[] serialize(Object value) throws SerializationException {
+                if (value == null) return new byte[0];
+                try {
+                    return objectMapper.writeValueAsBytes(value);
+                } catch (Exception e) {
+                    throw new SerializationException("JSON serialize failed", e);
+                }
+            }
+
+            @Override
+            public Object deserialize(byte[] bytes) throws SerializationException {
+                if (bytes == null || bytes.length == 0) return null;
+                try {
+                    return objectMapper.readValue(bytes, Object.class);
+                } catch (Exception e) {
+                    throw new SerializationException("JSON deserialize failed", e);
+                }
+            }
+        };
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(jsonSerializer);
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(jsonSerializer);
+
+        return template;
+    }
+}
