@@ -1,6 +1,7 @@
 package com.codereferee.codereferee_server.infrastructure.redis;
 
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -10,7 +11,7 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
-public class TaskStatusRedisRepository {
+public class TaskStatusRedisRepository implements TaskStatusRepository {
 
     private static final String KEY_PREFIX = "task:status:";
 

@@ -1,8 +1,7 @@
 package com.codereferee.codereferee_server.application;
 
 import com.codereferee.codereferee_server.api.RepositoryValidationRequest;
-import com.codereferee.codereferee_server.domain.validation.AgentStep;
-import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.domain.validation.*;
 import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
 import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
 import com.codereferee.codereferee_server.infrastructure.redis.InputMessage;
@@ -21,25 +20,24 @@ import static org.mockito.Mockito.when;
 
 class RefereeServiceTest {
 
-    // 테스트 대상 레포 — 여기만 바꾸면 아래 검증도 전부 따라온다
+    // 테스트 대상 레포
     private static final String REPO_URL = "https://github.com/phdcoco/QuickByte_Demo";
     private static final String BRANCH = "main";
     private static final String COMMIT = "d1c5c5e";
 
-    private final TaskStatusRedisRepository taskStatusRedisRepository = mock(TaskStatusRedisRepository.class);
-    private final TaskStatusPgRepository pgRepository = mock(TaskStatusPgRepository.class);
-    private final RedisValidationRequestQueue redisValidationRequestQueue = mock(RedisValidationRequestQueue.class);
+    private final TaskStatusRepository taskStatusRepository = mock(TaskStatusRepository.class);
+    private final TaskStatusHistoryRepository historyRepository = mock(TaskStatusHistoryRepository.class);
+    private final ValidationRequestQueue requestQueue = mock(ValidationRequestQueue.class);
     private final PipelineMetrics pipelineMetrics = new PipelineMetrics(new SimpleMeterRegistry());
     private final RefereeService refereeService =
-            new RefereeService(taskStatusRedisRepository, pgRepository, redisValidationRequestQueue, pipelineMetrics);
+            new RefereeService(taskStatusRepository, historyRepository, requestQueue, pipelineMetrics);
 
     @Test
     void submitStoresQueuedStatusAndEnqueuesTask() {
-        RepositoryValidationRequest request = new RepositoryValidationRequest(REPO_URL, BRANCH, COMMIT);
-        String requestId = refereeService.submit(request);
+        String requestId = refereeService.submit(REPO_URL, BRANCH, COMMIT);
 
         ArgumentCaptor<TaskStatus> statusCaptor = ArgumentCaptor.forClass(TaskStatus.class);
-        verify(taskStatusRedisRepository).save(statusCaptor.capture());
+        verify(taskStatusRepository).save(statusCaptor.capture());
         TaskStatus status = statusCaptor.getValue();
 
         assertThat(status.taskId()).isEqualTo(requestId);
@@ -51,25 +49,17 @@ class RefereeServiceTest {
         assertThat(status.commitSha()).isEqualTo(COMMIT);
 
         // 이력 조회를 위해 제출 시점부터 PG에도 기록된다.
-        verify(pgRepository).upsert(status);
+        verify(historyRepository).upsert(status);
 
-        ArgumentCaptor<InputMessage> messageCaptor = ArgumentCaptor.forClass(InputMessage.class);
-        verify(redisValidationRequestQueue).enqueue(messageCaptor.capture());
-        InputMessage message = messageCaptor.getValue();
-
-        assertThat(message.taskId()).isEqualTo(requestId);
-        assertThat(message.repositoryUrl()).isEqualTo(REPO_URL);
-        assertThat(message.branch()).isEqualTo(BRANCH);
-        assertThat(message.commitSha()).isEqualTo(COMMIT);
-        assertThat(message.submittedAt()).isEqualTo(status.updatedAt());
+        // 큐에는 저장된 것과 동일한 초기 상태가 전달된다.
+        verify(requestQueue).enqueue(status);
     }
 
     @Test
     void submitAlwaysIssuesServerSideRequestId() {
-        RepositoryValidationRequest request = new RepositoryValidationRequest(REPO_URL, BRANCH, COMMIT);
 
-        String first = refereeService.submit(request);
-        String second = refereeService.submit(request);
+        String first = refereeService.submit(REPO_URL, BRANCH, COMMIT);
+        String second = refereeService.submit(REPO_URL, BRANCH, COMMIT);
 
         assertThat(first).isNotBlank();
         assertThat(second).isNotBlank();
@@ -79,7 +69,7 @@ class RefereeServiceTest {
     @Test
     void getStatusReadsStoredState() {
         TaskStatus status = new TaskStatus("task-1", AgentStep.QUEUED, false, 0, null, null);
-        when(taskStatusRedisRepository.findById("task-1")).thenReturn(Optional.of(status));
+        when(taskStatusRepository.findById("task-1")).thenReturn(Optional.of(status));
 
         assertThat(refereeService.getStatus("task-1")).contains(status);
     }
