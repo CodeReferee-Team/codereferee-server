@@ -2,6 +2,7 @@ package com.codereferee.codereferee_server.infrastructure.persistence;
 
 import com.codereferee.codereferee_server.domain.validation.AgentStep;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -16,7 +17,7 @@ import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
-public class TaskStatusPgRepository {
+public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;

@@ -19,7 +19,11 @@ public class RefereeController {
 
     @PostMapping("/repository")
     public ResponseEntity<Map<String, String>> submitValidation(@Valid @RequestBody RepositoryValidationRequest request) {
-        String requestId = refereeService.submit(request);
+        String requestId = refereeService.submit(
+                request.repositoryUrl(),
+                request.branch(),
+                request.commitSha()
+        );
         return ResponseEntity.accepted().body(Map.of("requestId", requestId));
     }
 
