@@ -1,5 +1,13 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.application;
 
+import com.codereferee.codereferee_server.api.RepositoryValidationRequest;
+import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
+import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
+import com.codereferee.codereferee_server.infrastructure.redis.InputMessage;
+import com.codereferee.codereferee_server.infrastructure.redis.RedisValidationRequestQueue;
+import com.codereferee.codereferee_server.infrastructure.redis.TaskStatusRedisRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -18,12 +26,12 @@ class RefereeServiceTest {
     private static final String BRANCH = "main";
     private static final String COMMIT = "d1c5c5e";
 
-    private final TaskStatusRepository taskStatusRepository = mock(TaskStatusRepository.class);
+    private final TaskStatusRedisRepository taskStatusRedisRepository = mock(TaskStatusRedisRepository.class);
     private final TaskStatusPgRepository pgRepository = mock(TaskStatusPgRepository.class);
-    private final InputQueue inputQueue = mock(InputQueue.class);
+    private final RedisValidationRequestQueue redisValidationRequestQueue = mock(RedisValidationRequestQueue.class);
     private final PipelineMetrics pipelineMetrics = new PipelineMetrics(new SimpleMeterRegistry());
     private final RefereeService refereeService =
-            new RefereeService(taskStatusRepository, pgRepository, inputQueue, pipelineMetrics);
+            new RefereeService(taskStatusRedisRepository, pgRepository, redisValidationRequestQueue, pipelineMetrics);
 
     @Test
     void submitStoresQueuedStatusAndEnqueuesTask() {
@@ -31,7 +39,7 @@ class RefereeServiceTest {
         String requestId = refereeService.submit(request);
 
         ArgumentCaptor<TaskStatus> statusCaptor = ArgumentCaptor.forClass(TaskStatus.class);
-        verify(taskStatusRepository).save(statusCaptor.capture());
+        verify(taskStatusRedisRepository).save(statusCaptor.capture());
         TaskStatus status = statusCaptor.getValue();
 
         assertThat(status.taskId()).isEqualTo(requestId);
@@ -46,7 +54,7 @@ class RefereeServiceTest {
         verify(pgRepository).upsert(status);
 
         ArgumentCaptor<InputMessage> messageCaptor = ArgumentCaptor.forClass(InputMessage.class);
-        verify(inputQueue).enqueue(messageCaptor.capture());
+        verify(redisValidationRequestQueue).enqueue(messageCaptor.capture());
         InputMessage message = messageCaptor.getValue();
 
         assertThat(message.taskId()).isEqualTo(requestId);
@@ -71,7 +79,7 @@ class RefereeServiceTest {
     @Test
     void getStatusReadsStoredState() {
         TaskStatus status = new TaskStatus("task-1", AgentStep.QUEUED, false, 0, null, null);
-        when(taskStatusRepository.findById("task-1")).thenReturn(Optional.of(status));
+        when(taskStatusRedisRepository.findById("task-1")).thenReturn(Optional.of(status));
 
         assertThat(refereeService.getStatus("task-1")).contains(status);
     }

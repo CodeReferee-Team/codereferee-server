@@ -1,5 +1,7 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.api;
 
+import com.codereferee.codereferee_server.application.RefereeService;
+import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

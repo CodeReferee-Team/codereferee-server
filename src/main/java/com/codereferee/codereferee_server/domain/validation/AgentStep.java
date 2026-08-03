@@ -1,4 +1,4 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.domain.validation;
 
 /**
  * 검증 요청의 상태 머신.

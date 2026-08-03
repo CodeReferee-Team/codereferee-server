@@ -1,5 +1,7 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.infrastructure.persistence;
 
+import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -8,7 +10,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;

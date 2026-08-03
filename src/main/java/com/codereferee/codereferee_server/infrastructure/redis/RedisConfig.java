@@ -1,4 +1,4 @@
-package com.codereferee.codereferee_server.config;
+package com.codereferee.codereferee_server.infrastructure.redis;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

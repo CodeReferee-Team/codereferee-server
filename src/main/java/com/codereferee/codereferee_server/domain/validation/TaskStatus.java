@@ -1,4 +1,4 @@
-package com.codereferee.codereferee_server.referee;
+package com.codereferee.codereferee_server.domain.validation;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
