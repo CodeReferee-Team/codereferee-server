@@ -17,7 +17,7 @@ CodeReferee 플랫폼의 Spring Boot API 게이트웨이 서버. 외부 클라�
 - Java 17
 - PostgreSQL (포트 5432)
 - Redis (포트 6379)
-- [AI Core 서버](../codereferee-ai/README.md) 실행 중 (포트 8000)
+- [AI Core 서버](https://github.com/CodeReferee-Team/codereferee-AI) 실행 중 (포트 8000)
 
 ### 로컬 실행
 
@@ -124,7 +124,7 @@ prometheus.yml       # Prometheus 스크레이프 설정
 
 | 구성 요소 | 기술 |
 |---|---|
-| 프레임워크 | Spring Boot 4.0.5 / Java 17 |
+| 프레임워크 | Spring Boot 3.5.3 / Java 17 |
 | 영속화 | PostgreSQL + JdbcTemplate |
 | 메시지 큐 | Redis (Spring Data Redis) |
 | HTTP 클라이언트 | RestClient (JDK HttpClient) |
