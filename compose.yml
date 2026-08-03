@@ -20,31 +20,6 @@ services:
     networks:
       - codereferee-network
 
-  sandbox-python:
-    build:
-      context: ./sandbox-python
-    image: codereferee-sandbox-python:latest
-    container_name: codereferee-sandbox-python
-    expose:
-      - "8000"
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 128
-    mem_limit: 256m
-    cpus: 0.5
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - codereferee-network
-
   codereferee-db:
     image: postgres:17-alpine
     container_name: codereferee-db
