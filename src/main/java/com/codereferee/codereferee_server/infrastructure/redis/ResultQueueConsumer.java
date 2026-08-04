@@ -2,6 +2,7 @@ package com.codereferee.codereferee_server.infrastructure.redis;
 
 import com.codereferee.codereferee_server.domain.validation.AgentStep;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
+import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository;
 import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
 import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
@@ -37,7 +38,7 @@ public class ResultQueueConsumer {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final TaskStatusRepository taskStatusRepository;
-    private final TaskStatusPgRepository pgRepository;
+    private final TaskStatusHistoryRepository historyRepository;
     private final PipelineMetrics pipelineMetrics;
     private final ObjectMapper objectMapper;
 
@@ -91,11 +92,13 @@ public class ResultQueueConsumer {
         Optional<AgentStep> stepOpt = event.resolveStep();
         if (taskId == null || stepOpt.isEmpty()) {
             log.warn("[ResultQueue] 잘못된 이벤트 상태는 무시됩니다. taskId = {}, step = {}", taskId, event.step());
+            return;
         }
 
         Optional<TaskStatus> currentOpt = taskStatusRepository.findById(taskId);
         if (currentOpt.isEmpty()) {
             log.warn("[ResultQueue] 알 수 없는 taskId는 무시됩니다. taskId = {}", taskId);
+            return;
         }
 
         TaskStatus current = currentOpt.get();
@@ -103,6 +106,7 @@ public class ResultQueueConsumer {
         // 종결 후 늦게 도착한 progress는 무시한다.
         if (current.currentAgent().isTerminal()) {
             log.info("[ResultQueue] taskID = {} 는 이미 {} 상태로 확정되었습니다. {} 상태는 무시됩니다.", taskId, current.currentAgent(), event.step());
+            return;
         }
 
         AgentStep step = stepOpt.get();
@@ -114,7 +118,7 @@ public class ResultQueueConsumer {
         }
 
         taskStatusRepository.save(updated);
-        pgRepository.upsert(updated);
+        historyRepository.upsert(updated);
 
         log.info("ResultQueue taskId = {} 상태 -> {}{}", taskId, step, event.round() != null ?
                 " (round " + event.round() + " / " + event.maxRounds() + ")" : "");
@@ -139,7 +143,7 @@ public class ResultQueueConsumer {
         pipelineMetrics.recordTransition(current.currentAgent(), verdict);
         pipelineMetrics.recordVerdict(verdict);
         taskStatusRepository.save(updated);
-        pgRepository.upsert(updated);
+        historyRepository.upsert(updated);
 
         log.info("[ResultQueue] taskId = {} -> {} reports = {}", taskId, verdict, aiReports.keySet());
 }
