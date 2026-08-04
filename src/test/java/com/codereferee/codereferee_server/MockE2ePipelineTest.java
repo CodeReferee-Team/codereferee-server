@@ -77,6 +77,7 @@ class MockE2ePipelineTest {
         assertThat(status.get("currentAgent")).isEqualTo("FAILED");
         assertThat(status.get("isExecutable")).isEqualTo(false);
         assertThat(reports(status)).containsKey("critic_feedback");
+        assertThat(status.get("iterationCount")).isEqualTo(3);
     }
 
     @Test
