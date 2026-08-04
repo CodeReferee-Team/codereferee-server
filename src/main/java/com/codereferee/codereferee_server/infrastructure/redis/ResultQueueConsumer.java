@@ -2,9 +2,9 @@ package com.codereferee.codereferee_server.infrastructure.redis;
 
 import com.codereferee.codereferee_server.domain.validation.AgentStep;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
-import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository;
 import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
+import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,7 +37,7 @@ public class ResultQueueConsumer {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final TaskStatusRepository taskStatusRepository;
-    private final TaskStatusHistoryRepository historyRepository;
+    private final TaskStatusPgRepository pgRepository;
     private final PipelineMetrics pipelineMetrics;
     private final ObjectMapper objectMapper;
 
@@ -77,19 +78,58 @@ public class ResultQueueConsumer {
 
     // 테스트에서 직접 호출할 수 있도록 패키지 가시성으로 분리
     void process(Object raw) {
-        SandboxResultMessage msg = objectMapper.convertValue(raw, SandboxResultMessage.class);
+        String type = objectMapper.valueToTree(raw).path("type").asText("result");
+        switch(type) {
+            case "progress" -> handleProgress(objectMapper.convertValue(raw, ProgressEventMessage.class));
+            case "result" -> handleResult(objectMapper.convertValue(raw, SandboxResultMessage.class));
+            default -> log.warn("[ResultQueue] 알 수 없는 메시지 타입: {}, 무시됩니다.", type);
+        }
+    }
 
+    private void handleProgress(ProgressEventMessage event) {
+        String taskId = event.requestId();
+        Optional<AgentStep> stepOpt = event.resolveStep();
+        if (taskId == null || stepOpt.isEmpty()) {
+            log.warn("[ResultQueue] 잘못된 이벤트 상태는 무시됩니다. taskId = {}, step = {}", taskId, event.step());
+        }
+
+        Optional<TaskStatus> currentOpt = taskStatusRepository.findById(taskId);
+        if (currentOpt.isEmpty()) {
+            log.warn("[ResultQueue] 알 수 없는 taskId는 무시됩니다. taskId = {}", taskId);
+        }
+
+        TaskStatus current = currentOpt.get();
+
+        // 종결 후 늦게 도착한 progress는 무시한다.
+        if (current.currentAgent().isTerminal()) {
+            log.info("[ResultQueue] taskID = {} 는 이미 {} 상태로 확정되었습니다. {} 상태는 무시됩니다.", taskId, current.currentAgent(), event.step());
+        }
+
+        AgentStep step = stepOpt.get();
+        int iterations = event.round() != null ? event.round() : current.iterationCount();
+        TaskStatus updated = current.withProgress(step, iterations);
+
+        if (step != current.currentAgent()) {
+            pipelineMetrics.recordTransition(current.currentAgent(), step);
+        }
+
+        taskStatusRepository.save(updated);
+        pgRepository.upsert(updated);
+
+        log.info("ResultQueue taskId = {} 상태 -> {}{}", taskId, step, event.round() != null ?
+                " (round " + event.round() + " / " + event.maxRounds() + ")" : "");
+    }
+
+    private void handleResult(SandboxResultMessage msg) {
         String taskId = msg.requestId() != null ? msg.requestId() : msg.jobId();
-        log.info("[ResultQueue] received taskId={} status={}", taskId, msg.status());
-
         TaskStatus current = taskStatusRepository.findById(taskId)
-                .orElseThrow(() -> new IllegalStateException("TaskStatus not found: " + taskId));
+                .orElseThrow(() -> new IllegalStateException("TaskStatus를 찾을 수 없습니다. taskId = " + taskId));
 
         AgentStep verdict = mapVerdict(msg.status());
         String errorMessage = switch (verdict) {
             case PASSED -> null;
             case ERROR -> "Pipeline error (판정 불가): " + msg.status();
-            default -> "Validation failed with status: " + msg.status();
+            default -> "Validation failed. status: " + msg.status();
         };
 
         Map<String, Object> aiReports = buildAiReports(msg);
@@ -98,12 +138,11 @@ public class ResultQueueConsumer {
 
         pipelineMetrics.recordTransition(current.currentAgent(), verdict);
         pipelineMetrics.recordVerdict(verdict);
-
         taskStatusRepository.save(updated);
-        historyRepository.upsert(updated);
+        pgRepository.upsert(updated);
 
-        log.info("[ResultQueue] taskId={} → {} reports={}", taskId, verdict, aiReports.keySet());
-    }
+        log.info("[ResultQueue] taskId = {} -> {} reports = {}", taskId, verdict, aiReports.keySet());
+}
 
     /**
      * AI 모듈 status → 최종 상태 매핑.
