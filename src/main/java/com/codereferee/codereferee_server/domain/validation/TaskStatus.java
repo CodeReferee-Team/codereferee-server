@@ -22,7 +22,6 @@ public record TaskStatus(
         this(taskId, currentAgent, executable, iterationCount, errorMessage, updatedAt, null, null, null, null);
     }
 
-    // Single constructor call site — all with* methods delegate here
     private TaskStatus rebuild(AgentStep step, boolean exec, int iterations, String error) {
         return new TaskStatus(taskId, step, exec, iterations, error, LocalDateTime.now(),
                 repositoryUrl, branch, commitSha, aiReports);
@@ -32,16 +31,21 @@ public record TaskStatus(
         return rebuild(step, executable, iterationCount, errorMessage);
     }
 
+    // 중간 진행 이벤트 반영 -> 단계를 전환하고 Refine 라운드를 갱신한다.
+    public TaskStatus withProgress(AgentStep step, int iterations) {
+        return rebuild(step, executable, Math.max(iterations, iterationCount), errorMessage);
+    }
+
     public TaskStatus withNextIteration() {
         return rebuild(currentAgent, executable, iterationCount + 1, errorMessage);
     }
 
-    /** 코드 결함으로 인한 최종 실패 */
+    // 코드 결함으로 인한 최종 실패
     public TaskStatus withFailure(String error) {
         return rebuild(AgentStep.FAILED, false, iterationCount, error);
     }
 
-    /** 인프라/파이프라인 오류 — 판정 불가, Critic 루프 제외 */
+    // 인프라, 파이프라인 오류로 인해 판정 불가, Critic 루프 제외
     public TaskStatus withError(String error) {
         return rebuild(AgentStep.ERROR, executable, iterationCount, error);
     }
