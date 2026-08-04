@@ -1,9 +1,6 @@
 package com.codereferee.codereferee_server.infrastructure.mock;
 
-import com.codereferee.codereferee_server.infrastructure.redis.InputMessage;
-import com.codereferee.codereferee_server.infrastructure.redis.RedisValidationRequestQueue;
-import com.codereferee.codereferee_server.infrastructure.redis.ResultQueueConsumer;
-import com.codereferee.codereferee_server.infrastructure.redis.SandboxResultMessage;
+import com.codereferee.codereferee_server.infrastructure.redis.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +12,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +36,7 @@ public class MockAiWorker {
 
     // 일 처리 시간 의도적으로 설정
     private static final Duration POP_TIMEOUT = Duration.ofSeconds(5);
-    private static final Duration PROCESSING_DELAY = Duration.ofSeconds(2);
+    private static final Duration STEP_DELAY = Duration.ofMillis(300); // 단계 간 지연
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -84,11 +83,49 @@ public class MockAiWorker {
         InputMessage input = objectMapper.convertValue(raw, InputMessage.class);
         log.info("[MockAI] 작업을 접수했습니다. taskId = {}, repo = {}", input.taskId(), input.repositoryUrl());
 
-        sleepQuietly(PROCESSING_DELAY); // 실제 파이프라인 처리 시간을 흉내낸다.
+        for (ProgressEventMessage event : buildProgressEvents(input)) {
+            sleepQuietly(STEP_DELAY); // 실제 파이프라인 처리 시간을 흉내낸다.
+            redisTemplate.opsForList().rightPush(ResultQueueConsumer.QUEUE_KEY, event);
+            log.info("[MockAi] taskId = {} 인 작업 상태 = {} pushed 되었습니다.", input.taskId(), event.step());
+        }
 
+        sleepQuietly(STEP_DELAY);
         SandboxResultMessage result = buildResult(input);
         redisTemplate.opsForList().rightPush(ResultQueueConsumer.QUEUE_KEY, result);
         log.info("[MockAI] taskId = {} -> status = {} 결과를 output에 push했습니다.", input.taskId(), result.status());
+    }
+
+    private ProgressEventMessage progress(InputMessage input, String step, Integer round) {
+        return new ProgressEventMessage(
+                "progress",
+                input.taskId(),
+                step,
+                round,
+                round != null ? 3 : null,
+                null,
+                Instant.now().toString()
+        );
+    }
+
+    private List<ProgressEventMessage> buildProgressEvents(InputMessage input) {
+        String url = input.repositoryUrl() == null ? "" : input.repositoryUrl();
+        List<ProgressEventMessage> events = new ArrayList<>();
+        events.add(progress(input, "PREFLIGHT", null));
+        events.add(progress(input, "BASELINE", null));
+        if (url.contains("infra")) {
+            // BASELINE 도중 인프라가 죽은 시나리오. 여기서 끊고 infra_error 결과로 보낸다.
+            return events;
+        }
+        events.add(progress(input, "CHAOS", null));
+        events.add(progress(input, "JUDGING", null));
+        if (url.contains("fail")) {
+            for (int round = 1; round <= 3; round++) {
+                events.add(progress(input, "REFINING", round));
+                events.add(progress(input, "BASELINE", null));
+                events.add(progress(input, "JUDGING", null));
+            }
+        }
+        return events;
     }
 
     private SandboxResultMessage buildResult(InputMessage input) {
