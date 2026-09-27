@@ -44,9 +44,9 @@ tasks.named('test') {
 
 tasks.named('bootRun') {
 	// args 대신 systemProperty를 사용하면 OS 환경과 상관없이 확실하게 설정이 주입됩니다.
-	systemProperty 'spring.datasource.url', 'jdbc:postgresql://localhost:5432/codereferee_test'
+	systemProperty 'spring.datasource.url', 'jdbc:postgresql://localhost:5433/codereferee'
 	systemProperty 'spring.datasource.username', 'postgres'
-	systemProperty 'spring.datasource.password', 'password'
+	systemProperty 'spring.datasource.password', 'postgres'
 	systemProperty 'spring.data.redis.host', 'localhost'
 	systemProperty 'spring.data.redis.port', '6379'
 }
