@@ -22,7 +22,9 @@ public class RefereeController {
         String requestId = refereeService.submit(
                 request.repositoryUrl(),
                 request.branch(),
-                request.commitSha()
+                request.commitSha(),
+                request.chaosMode(),
+                request.deploymentProfile()
         );
         return ResponseEntity.accepted().body(Map.of("requestId", requestId));
     }

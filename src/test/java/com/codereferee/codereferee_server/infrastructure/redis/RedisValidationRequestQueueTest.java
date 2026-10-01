@@ -37,6 +37,8 @@ class RedisValidationRequestQueueTest {
                 "https://github.com/phdcoco/QuickByte_Demo",
                 "main",
                 "d1c5c5e",
+                null,
+                null,
                 submittedAt
         ));
     }
