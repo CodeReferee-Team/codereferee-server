@@ -15,3 +15,9 @@ CREATE TABLE IF NOT EXISTS task_status (
 -- 재검사 시 이전 이력 조회용 (GET /api/validations/history)
 CREATE INDEX IF NOT EXISTS idx_task_status_repo_commit
     ON task_status (repository_url, commit_sha, updated_at DESC);
+
+-- 결과가 도착하지 않은 요청 정리용 (StaleValidationSweeper).
+-- 시간이 지나면 종결 상태가 대부분이므로 부분 인덱스로 비종결 행만 담는다.
+CREATE INDEX IF NOT EXISTS idx_task_status_stale
+    ON task_status (updated_at)
+    WHERE current_agent NOT IN ('PASSED', 'FAILED', 'ERROR');

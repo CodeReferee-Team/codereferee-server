@@ -12,7 +12,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Map;
 
 @Repository
@@ -63,6 +66,32 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 ORDER BY updated_at DESC
                 LIMIT 20
                 """, rowMapper(), repositoryUrl, commitSha);
+    }
+
+    /**
+     * 종결 상태 목록은 AgentStep에서 뽑아 쓴다. SQL에 직접 적어두면 enum이 바뀔 때 조용히 어긋난다.
+     * 값이 enum 상수뿐이라 문자열로 조립해도 주입 위험이 없다.
+     */
+    private static final String TERMINAL_STATES = Arrays.stream(AgentStep.values())
+            .filter(AgentStep::isTerminal)
+            .map(step -> "'" + step.name() + "'")
+            .collect(Collectors.joining(", "));
+
+    @Override
+    public List<TaskStatus> findStale(LocalDateTime queuedBefore, LocalDateTime runningBefore, int limit) {
+        return jdbcTemplate.query("""
+                SELECT task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
+                       repository_url, branch, commit_sha, ai_reports
+                FROM task_status
+                WHERE current_agent NOT IN (%s)
+                  AND updated_at < CASE WHEN current_agent = 'QUEUED' THEN ? ELSE ? END
+                ORDER BY updated_at
+                LIMIT ?
+                """.formatted(TERMINAL_STATES),
+                rowMapper(),
+                Timestamp.valueOf(queuedBefore),
+                Timestamp.valueOf(runningBefore),
+                limit);
     }
 
     private RowMapper<TaskStatus> rowMapper() {

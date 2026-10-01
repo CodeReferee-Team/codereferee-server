@@ -32,3 +32,9 @@ management:
       exposure:
         include: prometheus
 
+# 결과가 끝내 도착하지 않은 요청을 ERROR로 확정하는 기준 (StaleValidationSweeper)
+codereferee:
+  validation:
+    sweep-interval: 1m
+    queued-timeout: 60m   # 샌드박스가 동시 1건만 처리해 대기열이 길어질 수 있다
+    running-timeout: 30m  # AI 측 샌드박스 작업 상한 15~20분보다 여유를 둔다

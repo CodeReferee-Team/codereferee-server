@@ -9,7 +9,7 @@ public record ProgressEventMessage (
         @JsonProperty("type") String type,
         @JsonProperty("request_id") String requestId,
         @JsonProperty("step") String step,
-        @JsonProperty("round") Integer round, // REFINING 단계에서는 JSON에 필드가 없어 null이 들어온다.
+        @JsonProperty("round") Integer round, // REFINING에서만 실려 온다. 다른 단계에서는 필드가 없어 null이다.
         @JsonProperty("max_rounds") Integer maxRounds,
         @JsonProperty("detail") String detail,
         @JsonProperty("timestamp") String timestamp // 로그 저장용이니 String
