@@ -22,6 +22,11 @@ public class RefereeService {
     private final PipelineMetrics pipelineMetrics;
 
     public String submit(String repositoryUrl, String branch, String commitSha) {
+        return submit(repositoryUrl, branch, commitSha, null, null);
+    }
+
+    public String submit(String repositoryUrl, String branch, String commitSha,
+                         String chaosMode, String deploymentProfile) {
         // requestId는 항상 서버가 발급한다 (위조·중복 방지)
         String requestId = UUID.randomUUID().toString();
 
@@ -33,7 +38,11 @@ public class RefereeService {
         historyRepository.upsert(initial);
         pipelineMetrics.recordSubmission();
 
-        requestQueue.enqueue(initial);
+        if (chaosMode == null && deploymentProfile == null) {
+            requestQueue.enqueue(initial);
+        } else {
+            requestQueue.enqueue(initial, chaosMode, deploymentProfile);
+        }
         log.info("[Submit] requestId={} repo={} commit={} queued",
                 requestId, repositoryUrl, commitSha);
 

@@ -7,5 +7,7 @@ public record InputMessage(
         String repositoryUrl,
         String branch,
         String commitSha,
+        String chaosMode,
+        String deploymentProfile,
         LocalDateTime submittedAt
 ) {}
