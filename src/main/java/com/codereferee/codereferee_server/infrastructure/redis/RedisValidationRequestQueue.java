@@ -15,9 +15,14 @@ public class RedisValidationRequestQueue implements ValidationRequestQueue {
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void enqueue(TaskStatus initial) {
+        enqueue(initial, null, null);
+    }
+
+    @Override
+    public void enqueue(TaskStatus initial, String chaosMode, String deploymentProfile) {
         InputMessage message = new InputMessage(
                 initial.taskId(), initial.repositoryUrl(), initial.branch(),
-                initial.commitSha(), initial.updatedAt()
+                initial.commitSha(), chaosMode, deploymentProfile, initial.updatedAt()
         );
 
         redisTemplate.opsForList().rightPush(QUEUE_KEY, message);
