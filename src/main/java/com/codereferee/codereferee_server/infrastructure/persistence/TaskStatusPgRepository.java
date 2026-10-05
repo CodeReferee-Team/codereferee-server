@@ -1,6 +1,7 @@
 package com.codereferee.codereferee_server.infrastructure.persistence;
 
 import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +31,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
         jdbcTemplate.update("""
                 INSERT INTO task_status
                     (task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
-                     repository_url, branch, commit_sha, ai_reports)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (task_id) DO UPDATE SET
                     current_agent   = EXCLUDED.current_agent,
                     is_executable   = EXCLUDED.is_executable,
@@ -41,6 +42,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                     repository_url  = EXCLUDED.repository_url,
                     branch          = EXCLUDED.branch,
                     commit_sha      = EXCLUDED.commit_sha,
+                    chaos_mode      = EXCLUDED.chaos_mode,
+                    deployment_profile = EXCLUDED.deployment_profile,
                     ai_reports      = EXCLUDED.ai_reports
                 """,
                 status.taskId(),
@@ -52,6 +55,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 status.repositoryUrl(),
                 status.branch(),
                 status.commitSha(),
+                status.chaosOptions().mode(),
+                status.chaosOptions().deploymentProfile(),
                 aiReportsJson
         );
     }
@@ -60,7 +65,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
     public List<TaskStatus> findByRepositoryAndCommit(String repositoryUrl, String commitSha) {
         return jdbcTemplate.query("""
                 SELECT task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
-                       repository_url, branch, commit_sha, ai_reports
+                       repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE repository_url = ? AND commit_sha = ?
                 ORDER BY updated_at DESC
@@ -81,7 +86,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
     public List<TaskStatus> findStale(LocalDateTime queuedBefore, LocalDateTime runningBefore, int limit) {
         return jdbcTemplate.query("""
                 SELECT task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
-                       repository_url, branch, commit_sha, ai_reports
+                       repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE current_agent NOT IN (%s)
                   AND updated_at < CASE WHEN current_agent = 'QUEUED' THEN ? ELSE ? END
@@ -105,6 +110,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 rs.getString("repository_url"),
                 rs.getString("branch"),
                 rs.getString("commit_sha"),
+                ChaosOptions.of(rs.getString("chaos_mode"), rs.getString("deployment_profile")),
                 fromJson(rs.getString("ai_reports"))
         );
     }

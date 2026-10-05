@@ -1,5 +1,6 @@
 package com.codereferee.codereferee_server.infrastructure.redis;
 
+import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.domain.validation.ValidationRequestQueue;
 import lombok.RequiredArgsConstructor;
@@ -14,17 +15,16 @@ public class RedisValidationRequestQueue implements ValidationRequestQueue {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void enqueue(TaskStatus initial) {
-        enqueue(initial, null, null);
-    }
-
     @Override
-    public void enqueue(TaskStatus initial, String chaosMode, String deploymentProfile) {
+    public void enqueue(TaskStatus initial) {
+        // 도메인 상태 → 큐 계약 메시지 변환은 어댑터의 책임
+        ChaosOptions chaos = initial.chaosOptions();
         InputMessage message = new InputMessage(
-                initial.taskId(), initial.repositoryUrl(), initial.branch(),
-                initial.commitSha(), chaosMode, deploymentProfile, initial.updatedAt()
+                initial.taskId(), initial.repositoryUrl(), initial.branch(), initial.commitSha(),
+                chaos.mode(), chaos.deploymentProfile(), initial.updatedAt()
         );
 
         redisTemplate.opsForList().rightPush(QUEUE_KEY, message);
     }
+
 }

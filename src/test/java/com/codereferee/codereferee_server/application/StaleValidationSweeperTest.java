@@ -1,6 +1,7 @@
 package com.codereferee.codereferee_server.application;
 
 import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository;
@@ -32,7 +33,7 @@ class StaleValidationSweeperTest {
 
     private TaskStatus stuck(String taskId, AgentStep step) {
         return new TaskStatus(taskId, step, false, 0, null, NOW.minusHours(2),
-                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e", null);
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e", ChaosOptions.NONE, null);
     }
 
     @Test

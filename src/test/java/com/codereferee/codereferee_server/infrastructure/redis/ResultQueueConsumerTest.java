@@ -1,6 +1,7 @@
 package com.codereferee.codereferee_server.infrastructure.redis;
 
 import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository;
@@ -31,7 +32,8 @@ class ResultQueueConsumerTest {
 
     private TaskStatus queued(String taskId) {
         return new TaskStatus(taskId, AgentStep.JUDGING, false, 0, null,
-                LocalDateTime.of(2026, 8, 3, 12, 0), "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e", null);
+                LocalDateTime.of(2026, 8, 3, 12, 0), "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
+                ChaosOptions.NONE, null);
     }
 
     @Test
@@ -117,7 +119,8 @@ class ResultQueueConsumerTest {
     @Test
     void progressAfterTerminalIsIgnored() {
         TaskStatus done = new TaskStatus("t5", AgentStep.PASSED, true, 1, null,
-                LocalDateTime.of(2026, 8, 3, 12, 0), "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e", null);
+                LocalDateTime.of(2026, 8, 3, 12, 0), "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
+                ChaosOptions.NONE, null);
         when(taskStatusRepository.findById("t5")).thenReturn(Optional.of(done));
 
         consumer.process(Map.of("type", "progress", "request_id", "t5", "step", "BASELINE"));

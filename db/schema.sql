@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS task_status (
     repository_url  TEXT,
     branch          VARCHAR(255),
     commit_sha      VARCHAR(64),
+    chaos_mode      VARCHAR(64),  -- 샌드박스 어휘. BE는 형식만 보고 보존한다
+    deployment_profile VARCHAR(64),
     ai_reports      JSONB
 );
 
@@ -21,3 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_task_status_repo_commit
 CREATE INDEX IF NOT EXISTS idx_task_status_stale
     ON task_status (updated_at)
     WHERE current_agent NOT IN ('PASSED', 'FAILED', 'ERROR');
+
+-- 기존 DB 적용용 (ddl-auto: none이라 수동)
+ALTER TABLE task_status ADD COLUMN IF NOT EXISTS chaos_mode VARCHAR(64);
+ALTER TABLE task_status ADD COLUMN IF NOT EXISTS deployment_profile VARCHAR(64);
