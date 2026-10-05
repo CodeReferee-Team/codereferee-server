@@ -15,16 +15,23 @@ public record TaskStatus(
         String repositoryUrl,
         String branch,
         String commitSha,
+        ChaosOptions chaosOptions,
         Map<String, Object> aiReports
 ) {
+    public TaskStatus {
+        // Redis에 저장된 옛 레코드에는 이 필드가 없어 null로 역직렬화된다.
+        chaosOptions = chaosOptions != null ? chaosOptions : ChaosOptions.NONE;
+    }
+
     public TaskStatus(String taskId, AgentStep currentAgent, boolean executable,
                       int iterationCount, String errorMessage, LocalDateTime updatedAt) {
-        this(taskId, currentAgent, executable, iterationCount, errorMessage, updatedAt, null, null, null, null);
+        this(taskId, currentAgent, executable, iterationCount, errorMessage, updatedAt,
+                null, null, null, ChaosOptions.NONE, null);
     }
 
     private TaskStatus rebuild(AgentStep step, boolean exec, int iterations, String error) {
         return new TaskStatus(taskId, step, exec, iterations, error, LocalDateTime.now(),
-                repositoryUrl, branch, commitSha, aiReports);
+                repositoryUrl, branch, commitSha, chaosOptions, aiReports);
     }
 
     public TaskStatus withStep(AgentStep step) {
@@ -52,6 +59,6 @@ public record TaskStatus(
 
     public TaskStatus withAiResult(AgentStep step, boolean exec, String error, Map<String, Object> reports) {
         return new TaskStatus(taskId, step, exec, iterationCount, error, LocalDateTime.now(),
-                repositoryUrl, branch, commitSha, reports);
+                repositoryUrl, branch, commitSha, chaosOptions, reports);
     }
 }

@@ -34,7 +34,7 @@ class RefereeServiceTest {
 
     @Test
     void submitStoresQueuedStatusAndEnqueuesTask() {
-        String requestId = refereeService.submit(REPO_URL, BRANCH, COMMIT);
+        String requestId = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
 
         ArgumentCaptor<TaskStatus> statusCaptor = ArgumentCaptor.forClass(TaskStatus.class);
         verify(taskStatusRepository).save(statusCaptor.capture());
@@ -58,12 +58,35 @@ class RefereeServiceTest {
     @Test
     void submitAlwaysIssuesServerSideRequestId() {
 
-        String first = refereeService.submit(REPO_URL, BRANCH, COMMIT);
-        String second = refereeService.submit(REPO_URL, BRANCH, COMMIT);
+        String first = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
+        String second = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
 
         assertThat(first).isNotBlank();
         assertThat(second).isNotBlank();
         assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void chaosOptionsArePreservedInTheStoredStatus() {
+        refereeService.submit(REPO_URL, BRANCH, COMMIT, "litmus_pod_delete", "quickbyte-demo");
+
+        ArgumentCaptor<TaskStatus> captor = ArgumentCaptor.forClass(TaskStatus.class);
+        verify(taskStatusRepository).save(captor.capture());
+        TaskStatus status = captor.getValue();
+
+        // 큐로만 흘려보내면 폴링·이력에서 "어떤 실험이었는지"를 알 수 없다.
+        assertThat(status.chaosOptions().mode()).isEqualTo("litmus_pod_delete");
+        assertThat(status.chaosOptions().deploymentProfile()).isEqualTo("quickbyte-demo");
+        verify(historyRepository).upsert(status);
+    }
+
+    @Test
+    void absentChaosOptionsBecomeNoneNotNull() {
+        refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
+
+        ArgumentCaptor<TaskStatus> captor = ArgumentCaptor.forClass(TaskStatus.class);
+        verify(taskStatusRepository).save(captor.capture());
+        assertThat(captor.getValue().chaosOptions()).isEqualTo(ChaosOptions.NONE);
     }
 
     @Test

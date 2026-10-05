@@ -21,10 +21,6 @@ public class RefereeService {
     private final ValidationRequestQueue requestQueue;
     private final PipelineMetrics pipelineMetrics;
 
-    public String submit(String repositoryUrl, String branch, String commitSha) {
-        return submit(repositoryUrl, branch, commitSha, null, null);
-    }
-
     public String submit(String repositoryUrl, String branch, String commitSha,
                          String chaosMode, String deploymentProfile) {
         // requestId는 항상 서버가 발급한다 (위조·중복 방지)
@@ -32,17 +28,14 @@ public class RefereeService {
 
         TaskStatus initial = new TaskStatus(
                 requestId, AgentStep.QUEUED, false, 0, null, LocalDateTime.now(),
-                repositoryUrl, branch, commitSha, null
+                repositoryUrl, branch, commitSha,
+                ChaosOptions.of(chaosMode, deploymentProfile), null
         );
         taskStatusRepository.save(initial);
         historyRepository.upsert(initial);
         pipelineMetrics.recordSubmission();
 
-        if (chaosMode == null && deploymentProfile == null) {
-            requestQueue.enqueue(initial);
-        } else {
-            requestQueue.enqueue(initial, chaosMode, deploymentProfile);
-        }
+        requestQueue.enqueue(initial);
         log.info("[Submit] requestId={} repo={} commit={} queued",
                 requestId, repositoryUrl, commitSha);
 

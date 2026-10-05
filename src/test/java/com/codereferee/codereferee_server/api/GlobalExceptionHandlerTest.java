@@ -35,6 +35,26 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void invalidChaosModeIsRejectedAtTheBoundary() throws Exception {
+        // 오타가 BE·Redis·AI를 지나 샌드박스에서 422로 터지는 것보다 즉시 거절이 낫다.
+        mockMvc.perform(post("/api/validations/repository")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"repository_url\": \"https://github.com/o/r\", \"chaos_mode\": \"Litmus Pod Delete\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void invalidDeploymentProfileIsRejectedAtTheBoundary() throws Exception {
+        // 샌드박스에서 profiles/{name}.json 경로 조회에 쓰이는 값이라 형식 검증이 안전 속성이다.
+        mockMvc.perform(post("/api/validations/repository")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"repository_url\": \"https://github.com/o/r\", \"deployment_profile\": \"../etc/passwd\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
     void malformedJsonReturns400() throws Exception {
         mockMvc.perform(post("/api/validations/repository")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -52,7 +72,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void unexpectedErrorReturns500WithoutInternalDetails() throws Exception {
-        given(refereeService.submit(any(), any(), any()))
+        given(refereeService.submit(any(), any(), any(), any(), any()))
                 .willThrow(new RuntimeException("connection to db failed at 10.0.3.7:5432"));
 
         mockMvc.perform(post("/api/validations/repository")
