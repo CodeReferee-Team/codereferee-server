@@ -1,6 +1,5 @@
 package com.codereferee.codereferee_server.infrastructure.redis;
 
-import com.codereferee.codereferee_server.domain.validation.AgentStep;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
 import org.junit.jupiter.api.Test;
@@ -23,8 +22,7 @@ class RedisValidationRequestQueueTest {
     private final RedisValidationRequestQueue queue = new RedisValidationRequestQueue(redisTemplate);
 
     private TaskStatus queued(ChaosOptions chaos) {
-        return new TaskStatus("task-1", AgentStep.QUEUED, false, 0, null, SUBMITTED_AT,
-                REPO, "main", "d1c5c5e", chaos, null);
+        return TaskStatus.queued("task-1", REPO, "main", "d1c5c5e", chaos, SUBMITTED_AT);
     }
 
     @Test

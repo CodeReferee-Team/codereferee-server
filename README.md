@@ -38,6 +38,31 @@ docker compose up -d
 - Prometheus: http://localhost:9090
 - Grafana: http://localhost:3000 (admin / admin)
 
+데이터소스와 대시보드는 `grafana/`에서 자동 프로비저닝된다. Grafana를 켜면 **CodeReferee 백엔드 운영**
+대시보드가 이미 들어 있다. UI에서 고친 내용은 컨테이너를 다시 만들 때 사라지므로, 수정은
+`grafana/dashboards/codereferee-backend.json`에서 한다.
+
+#### 노출하는 지표
+
+| 지표 | 종류 | 태그 | 무엇을 보는가 |
+|---|---|---|---|
+| `codereferee_submissions_total` | Counter | — | 접수량 |
+| `codereferee_verdicts_total` | Counter | `result` | 판정 분포. ERROR 비중이 인프라 신호 |
+| `codereferee_agent_transitions_total` | Counter | `from`, `to` | 상태 전이. REFINING 전이가 많으면 패치 루프를 자주 돈다 |
+| `codereferee_validation_duration_seconds` | Timer | `result` | 접수→종결 소요시간. p95가 여기서 나온다 |
+| `codereferee_stage_duration_seconds` | Timer | `stage` | 단계별 체류시간. 어느 단계가 지연을 만드는지 |
+| `codereferee_queue_depth` | Gauge | `queue` | 큐 적체. input은 AI 워커, output은 BE 소비 루프 |
+| `codereferee_sweeper_swept_total` | Counter | `from` | 결과를 못 받아 ERROR로 확정한 건수 |
+
+값이 0일 수 있는 조합은 미리 등록해 둔다. 아직 한 건도 없을 때 대시보드에 "No data"가 뜨면
+"지표가 안 들어온다"와 "아무 일도 없었다"가 화면에서 구분되지 않기 때문이다.
+
+`codereferee_queue_depth`는 Redis를 읽지 못하면 0이 아니라 NaN을 보고한다. 0으로 보고하면
+"큐가 비었다"는 거짓이 된다.
+
+> 샌드박스의 컨테이너·노드 지표(cAdvisor / Node Exporter)는 AI 인스턴스의 Prometheus에 모이므로
+> 이 대시보드 범위가 아니다. 수집 배선은 `codereferee-sandbox` 레포의 `docs/metrics-collection.md` 참조.
+
 ## API
 
 ### 검증 요청 제출

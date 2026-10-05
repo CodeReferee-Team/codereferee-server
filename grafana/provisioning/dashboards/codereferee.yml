@@ -1,0 +1,10 @@
+apiVersion: 1
+
+providers:
+  - name: codereferee
+    type: file
+    # 대시보드를 UI에서 고치면 레포의 JSON과 어긋난다. 수정은 JSON에서 한다.
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

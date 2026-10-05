@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS task_status (
     is_executable   BOOLEAN      NOT NULL DEFAULT FALSE,
     iteration_count INT          NOT NULL DEFAULT 0,
     error_message   TEXT,
+    -- updated_at은 전이마다 덮어쓰이므로 요청 전체 소요시간을 계산할 수 없다.
+    -- created_at은 한 번 정해지면 바뀌지 않는다(upsert의 DO UPDATE에서 제외).
+    created_at      TIMESTAMP,
     updated_at      TIMESTAMP    NOT NULL,
     repository_url  TEXT,
     branch          VARCHAR(255),
@@ -27,3 +30,5 @@ CREATE INDEX IF NOT EXISTS idx_task_status_stale
 -- 기존 DB 적용용 (ddl-auto: none이라 수동)
 ALTER TABLE task_status ADD COLUMN IF NOT EXISTS chaos_mode VARCHAR(64);
 ALTER TABLE task_status ADD COLUMN IF NOT EXISTS deployment_profile VARCHAR(64);
+-- NOT NULL로 두면 기존 행에 넣을 참값이 없다. 소요시간은 created_at이 있는 행만 집계한다.
+ALTER TABLE task_status ADD COLUMN IF NOT EXISTS created_at TIMESTAMP;

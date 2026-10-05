@@ -115,6 +115,9 @@ public class ResultQueueConsumer {
 
         if (step != current.currentAgent()) {
             pipelineMetrics.recordTransition(current.currentAgent(), step);
+            // 떠나는 단계에 머문 시간. 같은 단계로 온 progress는 전이가 아니므로 세지 않는다.
+            current.dwellUntil(updated.updatedAt())
+                    .ifPresent(dwell -> pipelineMetrics.recordStageDuration(current.currentAgent(), dwell));
         }
 
         taskStatusRepository.save(updated);
@@ -142,6 +145,11 @@ public class ResultQueueConsumer {
 
         pipelineMetrics.recordTransition(current.currentAgent(), verdict);
         pipelineMetrics.recordVerdict(verdict);
+        current.dwellUntil(updated.updatedAt())
+                .ifPresent(dwell -> pipelineMetrics.recordStageDuration(current.currentAgent(), dwell));
+        // 접수 시각을 모르는 옛 레코드는 비어 있어 집계에서 빠진다.
+        updated.elapsed()
+                .ifPresent(elapsed -> pipelineMetrics.recordValidationDuration(verdict, elapsed));
         taskStatusRepository.save(updated);
         historyRepository.upsert(updated);
 

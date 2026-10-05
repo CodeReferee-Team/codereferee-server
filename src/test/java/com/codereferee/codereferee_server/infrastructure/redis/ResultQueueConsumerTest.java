@@ -32,7 +32,8 @@ class ResultQueueConsumerTest {
 
     private TaskStatus queued(String taskId) {
         return new TaskStatus(taskId, AgentStep.JUDGING, false, 0, null,
-                LocalDateTime.of(2026, 8, 3, 12, 0), "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
+                LocalDateTime.of(2026, 8, 3, 11, 55), LocalDateTime.of(2026, 8, 3, 12, 0),
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
                 ChaosOptions.NONE, null);
     }
 
@@ -119,7 +120,8 @@ class ResultQueueConsumerTest {
     @Test
     void progressAfterTerminalIsIgnored() {
         TaskStatus done = new TaskStatus("t5", AgentStep.PASSED, true, 1, null,
-                LocalDateTime.of(2026, 8, 3, 12, 0), "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
+                LocalDateTime.of(2026, 8, 3, 11, 55), LocalDateTime.of(2026, 8, 3, 12, 0),
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
                 ChaosOptions.NONE, null);
         when(taskStatusRepository.findById("t5")).thenReturn(Optional.of(done));
 

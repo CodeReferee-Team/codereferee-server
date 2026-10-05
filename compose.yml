@@ -74,6 +74,10 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      # 데이터소스와 대시보드를 코드로 넣는다. UI에서 만들면 컨테이너를 다시 만들 때 사라진다.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
