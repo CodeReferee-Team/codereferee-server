@@ -55,6 +55,9 @@ public class StaleValidationSweeper {
             historyRepository.upsert(timedOut);
             pipelineMetrics.recordTransition(status.currentAgent(), AgentStep.ERROR);
             pipelineMetrics.recordVerdict(AgentStep.ERROR);
+            pipelineMetrics.recordSweptToError(status.currentAgent());
+            timedOut.elapsed().ifPresent(elapsed ->
+                    pipelineMetrics.recordValidationDuration(AgentStep.ERROR, elapsed));
             log.warn("[Sweeper] taskId={} {} → ERROR (마지막 갱신 {})",
                     status.taskId(), status.currentAgent(), status.updatedAt());
         }

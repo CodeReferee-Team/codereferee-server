@@ -1,0 +1,14 @@
+# Grafana를 UI에서 설정하면 컨테이너를 다시 만들 때 사라진다. 코드로 남긴다.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    # 대시보드 JSON이 이 uid로 데이터소스를 가리킨다. 자동 생성 uid에 맡기면
+    # 컨테이너를 다시 만들 때 값이 바뀌어 모든 패널이 빈 화면이 된다.
+    uid: codereferee-prometheus
+    access: proxy
+    # compose 네트워크 안의 서비스 이름. 호스트 포트가 바뀌어도 영향이 없다.
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

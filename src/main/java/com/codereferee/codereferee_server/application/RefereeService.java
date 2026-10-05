@@ -26,10 +26,9 @@ public class RefereeService {
         // requestId는 항상 서버가 발급한다 (위조·중복 방지)
         String requestId = UUID.randomUUID().toString();
 
-        TaskStatus initial = new TaskStatus(
-                requestId, AgentStep.QUEUED, false, 0, null, LocalDateTime.now(),
-                repositoryUrl, branch, commitSha,
-                ChaosOptions.of(chaosMode, deploymentProfile), null
+        TaskStatus initial = TaskStatus.queued(
+                requestId, repositoryUrl, branch, commitSha,
+                ChaosOptions.of(chaosMode, deploymentProfile), LocalDateTime.now()
         );
         taskStatusRepository.save(initial);
         historyRepository.upsert(initial);

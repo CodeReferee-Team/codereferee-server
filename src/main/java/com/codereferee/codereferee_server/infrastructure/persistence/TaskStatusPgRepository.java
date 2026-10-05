@@ -30,14 +30,18 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
         String aiReportsJson = toJson(status.aiReports());
         jdbcTemplate.update("""
                 INSERT INTO task_status
-                    (task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
+                    (task_id, current_agent, is_executable, iteration_count, error_message,
+                     created_at, updated_at,
                      repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (task_id) DO UPDATE SET
                     current_agent   = EXCLUDED.current_agent,
                     is_executable   = EXCLUDED.is_executable,
                     iteration_count = EXCLUDED.iteration_count,
                     error_message   = EXCLUDED.error_message,
+                    -- created_at은 갱신하지 않는다. 접수 시각이 전이마다 밀리면 소요시간이 0에 수렴한다.
+                    -- 다만 칼럼 추가 이전에 저장된 행은 비어 있으므로, 값이 생기면 한 번 채운다.
+                    created_at      = COALESCE(task_status.created_at, EXCLUDED.created_at),
                     updated_at      = EXCLUDED.updated_at,
                     repository_url  = EXCLUDED.repository_url,
                     branch          = EXCLUDED.branch,
@@ -51,6 +55,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 status.executable(),
                 status.iterationCount(),
                 status.errorMessage(),
+                status.createdAt() != null ? Timestamp.valueOf(status.createdAt()) : null,
                 Timestamp.valueOf(status.updatedAt()),
                 status.repositoryUrl(),
                 status.branch(),
@@ -64,7 +69,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
     /** 같은 repo+commit의 과거 검증 이력 (최신순, 최대 20건) — 재검사 시 이전 로그 제공용 */
     public List<TaskStatus> findByRepositoryAndCommit(String repositoryUrl, String commitSha) {
         return jdbcTemplate.query("""
-                SELECT task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
+                SELECT task_id, current_agent, is_executable, iteration_count, error_message,
+                       created_at, updated_at,
                        repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE repository_url = ? AND commit_sha = ?
@@ -85,7 +91,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
     @Override
     public List<TaskStatus> findStale(LocalDateTime queuedBefore, LocalDateTime runningBefore, int limit) {
         return jdbcTemplate.query("""
-                SELECT task_id, current_agent, is_executable, iteration_count, error_message, updated_at,
+                SELECT task_id, current_agent, is_executable, iteration_count, error_message,
+                       created_at, updated_at,
                        repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE current_agent NOT IN (%s)
@@ -106,13 +113,18 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 rs.getBoolean("is_executable"),
                 rs.getInt("iteration_count"),
                 rs.getString("error_message"),
-                rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null,
+                toLocalDateTime(rs.getTimestamp("created_at")),
+                toLocalDateTime(rs.getTimestamp("updated_at")),
                 rs.getString("repository_url"),
                 rs.getString("branch"),
                 rs.getString("commit_sha"),
                 ChaosOptions.of(rs.getString("chaos_mode"), rs.getString("deployment_profile")),
                 fromJson(rs.getString("ai_reports"))
         );
+    }
+
+    private static LocalDateTime toLocalDateTime(Timestamp timestamp) {
+        return timestamp != null ? timestamp.toLocalDateTime() : null;
     }
 
     private String toJson(Map<String, Object> reports) {
