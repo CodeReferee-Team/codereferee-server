@@ -29,14 +29,38 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 ./gradlew bootRun
 ```
 
-### 모니터링 스택 실행 (Prometheus + Grafana)
+### 전체 스택 실행 (서버 + DB + Redis + Prometheus + Grafana)
+
+AI 모듈 없이 파이프라인 전 구간을 돌려보려면 `mock-ai` 프로필로 띄운다. 이 프로필이 없으면
+요청이 input 큐에 그대로 머물러, 대시보드에 제출과 큐 적체만 보이고 판정도 소요시간도 나오지 않는다.
 
 ```bash
-docker compose up -d
+SPRING_PROFILES_ACTIVE=mock-ai docker compose up -d --build
 ```
 
+- 서버: http://localhost:8080
 - Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (admin / admin)
+- Grafana: http://localhost:3000 (admin / admin) → **CodeReferee 백엔드 운영**
+
+스키마는 `ddl-auto: none`이라 수동이지만, `db/schema.sql`이 Postgres 초기화 스크립트로 들어가 있어
+빈 데이터 디렉터리로 처음 뜰 때 자동 적용된다. 이미 데이터가 있으면 건너뛰므로 직접 적용한다.
+
+```bash
+docker exec -i codereferee-db psql -U postgres -d codereferee < db/schema.sql
+```
+
+대시보드에 값을 채워 보려면 세 경로를 모두 넣는다. mock 워커는 URL에 `fail`/`infra`가 들어가면
+각각 FAILED/ERROR 시나리오로 응답한다.
+
+```bash
+for u in QuickByte_Demo fail-demo infra-demo; do
+  curl -s -X POST http://localhost:8080/api/validations/repository \
+    -H 'Content-Type: application/json' \
+    -d "{\"repository_url\":\"https://github.com/phdcoco/$u\",\"branch\":\"main\"}"
+done
+```
+
+### 모니터링 대시보드
 
 데이터소스와 대시보드는 `grafana/`에서 자동 프로비저닝된다. Grafana를 켜면 **CodeReferee 백엔드 운영**
 대시보드가 이미 들어 있다. UI에서 고친 내용은 컨테이너를 다시 만들 때 사라지므로, 수정은
