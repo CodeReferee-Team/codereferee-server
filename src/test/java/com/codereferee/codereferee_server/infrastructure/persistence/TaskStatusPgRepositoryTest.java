@@ -1,5 +1,8 @@
 package com.codereferee.codereferee_server.infrastructure.persistence;
 
+import com.codereferee.codereferee_server.domain.validation.AgentStep;
+import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
+import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -52,5 +56,25 @@ class TaskStatusPgRepositoryTest {
                 .extracting(status -> status.taskId()).containsExactly("queued-old", "running-old");
         assertThat(repository.findStale(NOW.minusMinutes(60), NOW.minusMinutes(30), 1))
                 .extracting(status -> status.taskId()).containsExactly("queued-old");
+    }
+
+    @Test
+    void terminalReportsAreStoredAsJsonbAndRoundTripThroughHistory() {
+        var queued = TaskStatus.queued("reported-job", "https://github.com/example/repo.git",
+                "main", "sha", ChaosOptions.of("suite_deep", "quickbyte-demo"), NOW);
+        repository.upsert(queued);
+        Map<String, Object> reports = Map.of("execution_result", Map.of(
+                "observation_status", "observed", "exit_code", 0,
+                "chaos_observation", Map.of("recovered", true)),
+                "judge_report", Map.of("reason", "복구 시간 초과"));
+        repository.upsert(queued.withAiResult(AgentStep.FAILED, false, "복구 시간 초과", reports));
+
+        assertThat(jdbc.queryForObject("SELECT jsonb_typeof(ai_reports) FROM task_status WHERE task_id = ?",
+                String.class, "reported-job")).isEqualTo("object");
+        var stored = repository.findByRepositoryAndCommit(queued.repositoryUrl(), "sha").get(0);
+        assertThat(stored.currentAgent()).isEqualTo(AgentStep.FAILED);
+        assertThat(stored.aiReports()).isEqualTo(reports);
+        assertThat(stored.errorMessage()).isEqualTo("복구 시간 초과");
+        assertThat(stored.chaosOptions()).isEqualTo(queued.chaosOptions());
     }
 }
