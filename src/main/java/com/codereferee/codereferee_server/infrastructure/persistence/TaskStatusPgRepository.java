@@ -32,8 +32,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 INSERT INTO task_status
                     (task_id, current_agent, is_executable, iteration_count, error_message,
                      created_at, updated_at,
-                     repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     repository_url, branch, commit_sha, email, chaos_mode, deployment_profile, ai_reports)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (task_id) DO UPDATE SET
                     current_agent   = EXCLUDED.current_agent,
                     is_executable   = EXCLUDED.is_executable,
@@ -46,6 +46,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                     repository_url  = EXCLUDED.repository_url,
                     branch          = EXCLUDED.branch,
                     commit_sha      = EXCLUDED.commit_sha,
+                    -- email은 제출 때만 정해진다. 전이 레코드가 null로 덮지 않도록 기존 값을 유지한다.
+                    email           = COALESCE(EXCLUDED.email, task_status.email),
                     chaos_mode      = EXCLUDED.chaos_mode,
                     deployment_profile = EXCLUDED.deployment_profile,
                     ai_reports      = EXCLUDED.ai_reports
@@ -60,6 +62,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 status.repositoryUrl(),
                 status.branch(),
                 status.commitSha(),
+                status.email(),
                 status.chaosOptions().mode(),
                 status.chaosOptions().deploymentProfile(),
                 aiReportsJson
@@ -71,7 +74,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
         return jdbcTemplate.query("""
                 SELECT task_id, current_agent, is_executable, iteration_count, error_message,
                        created_at, updated_at,
-                       repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports
+                       repository_url, branch, commit_sha, email, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE repository_url = ? AND commit_sha = ?
                 ORDER BY updated_at DESC
@@ -93,7 +96,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
         return jdbcTemplate.query("""
                 SELECT task_id, current_agent, is_executable, iteration_count, error_message,
                        created_at, updated_at,
-                       repository_url, branch, commit_sha, chaos_mode, deployment_profile, ai_reports
+                       repository_url, branch, commit_sha, email, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE current_agent NOT IN (%s)
                   AND updated_at < CASE WHEN current_agent = 'QUEUED' THEN ? ELSE ? END
@@ -118,6 +121,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 rs.getString("repository_url"),
                 rs.getString("branch"),
                 rs.getString("commit_sha"),
+                rs.getString("email"),
                 ChaosOptions.of(rs.getString("chaos_mode"), rs.getString("deployment_profile")),
                 fromJson(rs.getString("ai_reports"))
         );

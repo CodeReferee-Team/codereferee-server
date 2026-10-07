@@ -26,6 +26,11 @@ public record TaskStatus(
         String repositoryUrl,
         String branch,
         String commitSha,
+        /**
+         * 완료 시 PDF 리포트를 받을 주소. 선택이라 대부분 null이다. 제출 때 한 번 정해지면
+         * 전이마다 그대로 이어받아, 결과가 돌아온 종단 상태에서 발송에 쓴다.
+         */
+        String email,
         ChaosOptions chaosOptions,
         Map<String, Object> aiReports
 ) {
@@ -38,14 +43,15 @@ public record TaskStatus(
     public TaskStatus(String taskId, AgentStep currentAgent, boolean executable,
                       int iterationCount, String errorMessage, LocalDateTime updatedAt) {
         this(taskId, currentAgent, executable, iterationCount, errorMessage, updatedAt, updatedAt,
-                null, null, null, ChaosOptions.NONE, null);
+                null, null, null, null, ChaosOptions.NONE, null);
     }
 
     /** 새로 접수된 검증 요청. */
     public static TaskStatus queued(String taskId, String repositoryUrl, String branch,
-                                    String commitSha, ChaosOptions chaosOptions, LocalDateTime now) {
+                                    String commitSha, String email, ChaosOptions chaosOptions,
+                                    LocalDateTime now) {
         return new TaskStatus(taskId, AgentStep.QUEUED, false, 0, null, now, now,
-                repositoryUrl, branch, commitSha, chaosOptions, null);
+                repositoryUrl, branch, commitSha, email, chaosOptions, null);
     }
 
     /** 접수부터 마지막 갱신까지 걸린 시간. 생성 시각을 모르는 옛 레코드는 비어 있다. */
@@ -62,7 +68,7 @@ public record TaskStatus(
 
     private TaskStatus rebuild(AgentStep step, boolean exec, int iterations, String error) {
         return new TaskStatus(taskId, step, exec, iterations, error, createdAt, LocalDateTime.now(),
-                repositoryUrl, branch, commitSha, chaosOptions, aiReports);
+                repositoryUrl, branch, commitSha, email, chaosOptions, aiReports);
     }
 
     public TaskStatus withStep(AgentStep step) {
@@ -90,6 +96,6 @@ public record TaskStatus(
 
     public TaskStatus withAiResult(AgentStep step, boolean exec, String error, Map<String, Object> reports) {
         return new TaskStatus(taskId, step, exec, iterationCount, error, createdAt, LocalDateTime.now(),
-                repositoryUrl, branch, commitSha, chaosOptions, reports);
+                repositoryUrl, branch, commitSha, email, chaosOptions, reports);
     }
 }

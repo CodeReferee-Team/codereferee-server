@@ -72,7 +72,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void unexpectedErrorReturns500WithoutInternalDetails() throws Exception {
-        given(refereeService.submit(any(), any(), any(), any(), any()))
+        given(refereeService.submit(any(), any(), any(), any(), any(), any()))
                 .willThrow(new RuntimeException("connection to db failed at 10.0.3.7:5432"));
 
         mockMvc.perform(post("/api/validations/repository")

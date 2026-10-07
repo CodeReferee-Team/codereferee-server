@@ -54,7 +54,7 @@ class ResultQueueConsumerMetricsTest {
     void recordsEndToEndDurationOnTerminalVerdict() {
         given(new TaskStatus("t1", AgentStep.JUDGING, false, 0, null,
                 SUBMITTED, SUBMITTED.plusMinutes(2),
-                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", ChaosOptions.NONE, null));
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", null, ChaosOptions.NONE, null));
 
         consumer.process(Map.of("request_id", "t1", "status", "success"));
 
@@ -73,7 +73,7 @@ class ResultQueueConsumerMetricsTest {
     void skipsDurationWhenSubmissionTimeIsUnknown() {
         given(new TaskStatus("t2", AgentStep.JUDGING, false, 0, null,
                 null, SUBMITTED.plusMinutes(2),
-                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", ChaosOptions.NONE, null));
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", null, ChaosOptions.NONE, null));
 
         consumer.process(Map.of("request_id", "t2", "status", "success"));
 
@@ -87,7 +87,7 @@ class ResultQueueConsumerMetricsTest {
     void recordsDwellTimeOfTheStageBeingLeft() {
         given(new TaskStatus("t3", AgentStep.BASELINE, false, 0, null,
                 SUBMITTED, SUBMITTED.plusMinutes(1),
-                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", ChaosOptions.NONE, null));
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", null, ChaosOptions.NONE, null));
 
         consumer.process(Map.of("type", "progress", "request_id", "t3", "step", "CHAOS"));
 
@@ -103,7 +103,7 @@ class ResultQueueConsumerMetricsTest {
     void doesNotRecordDwellWhenStageIsUnchanged() {
         given(new TaskStatus("t4", AgentStep.BASELINE, false, 0, null,
                 SUBMITTED, SUBMITTED.plusMinutes(1),
-                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", ChaosOptions.NONE, null));
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", null, ChaosOptions.NONE, null));
 
         consumer.process(Map.of("type", "progress", "request_id", "t4", "step", "BASELINE"));
 

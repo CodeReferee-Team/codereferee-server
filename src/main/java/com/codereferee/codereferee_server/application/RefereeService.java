@@ -22,12 +22,12 @@ public class RefereeService {
     private final PipelineMetrics pipelineMetrics;
 
     public String submit(String repositoryUrl, String branch, String commitSha,
-                         String chaosMode, String deploymentProfile) {
+                         String chaosMode, String deploymentProfile, String email) {
         // requestId는 항상 서버가 발급한다 (위조·중복 방지)
         String requestId = UUID.randomUUID().toString();
 
         TaskStatus initial = TaskStatus.queued(
-                requestId, repositoryUrl, branch, commitSha,
+                requestId, repositoryUrl, branch, commitSha, email,
                 ChaosOptions.of(chaosMode, deploymentProfile), LocalDateTime.now()
         );
         taskStatusRepository.save(initial);
