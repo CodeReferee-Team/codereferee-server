@@ -25,6 +25,12 @@ public class ReportPdfRenderer {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
+            // 한글 임베드. openhtmltopdf는 시스템 CJK 폰트로 폴백하지 않아, 폰트가 없으면
+            // 한글이 전부 두부(□)로 나온다. Pretendard(OFL)를 번들해 등록한다. 실제 쓰인
+            // 글리프만 subset 임베드되므로 PDF는 작게 유지된다.
+            builder.useFont(
+                    () -> getClass().getResourceAsStream("/fonts/Pretendard-Regular.ttf"),
+                    "Pretendard");
             builder.withHtmlContent(html, null);
             builder.toStream(out);
             builder.run();
@@ -48,7 +54,7 @@ public class ReportPdfRenderer {
 
         StringBuilder sb = new StringBuilder();
         sb.append("<html><head><meta charset=\"utf-8\"/><style>")
-          .append("body{font-family:sans-serif;color:#1a1a1a;font-size:12px;line-height:1.6;margin:40px;}")
+          .append("body{font-family:'Pretendard',sans-serif;color:#1a1a1a;font-size:12px;line-height:1.6;margin:40px;}")
           .append("h1{font-size:20px;margin:0 0 4px;} .sub{color:#666;margin:0 0 20px;}")
           .append(".verdict{display:inline-block;padding:4px 12px;border-radius:6px;font-weight:bold;}")
           .append(".PASSED{background:#e6f4ea;color:#137333;} .FAILED{background:#fce8e6;color:#c5221f;}")
