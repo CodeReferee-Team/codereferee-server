@@ -81,4 +81,28 @@ class TaskStatusPgRepositoryTest {
         assertThat(found.get(0).aiReports()).isNull();
         assertThat(found.get(0).email()).isNull();
     }
+
+    @Test
+    void findStaleReturnsOldNonTerminalRows() {
+        // 회귀 방지: 예전 쿼리는 CASE 안의 파라미터 타입을 PG가 추론하지 못해
+        // "operator does not exist: timestamp without time zone < text"로 깨졌다.
+        LocalDateTime old = LocalDateTime.now().minusHours(2);
+        LocalDateTime recent = LocalDateTime.now();
+
+        repository.upsert(TaskStatus.queued("stale-queued", "https://github.com/o/s1", "main", "c1",
+                null, ChaosOptions.NONE, old));
+        repository.upsert(TaskStatus.queued("fresh-queued", "https://github.com/o/s2", "main", "c2",
+                null, ChaosOptions.NONE, recent));
+        repository.upsert(TaskStatus.queued("done", "https://github.com/o/s3", "main", "c3",
+                        null, ChaosOptions.NONE, old)
+                .withAiResult(AgentStep.PASSED, true, null, Map.of()));
+
+        // 쿼리가 던지지 않고(타입 버그 회귀) 오래된 비종결 QUEUED만 돌려줘야 한다.
+        List<TaskStatus> stale = repository.findStale(
+                LocalDateTime.now().minusMinutes(30), LocalDateTime.now().minusMinutes(10), 10);
+
+        List<String> ids = stale.stream().map(TaskStatus::taskId).toList();
+        assertThat(ids).contains("stale-queued");
+        assertThat(ids).doesNotContain("fresh-queued", "done");
+    }
 }
