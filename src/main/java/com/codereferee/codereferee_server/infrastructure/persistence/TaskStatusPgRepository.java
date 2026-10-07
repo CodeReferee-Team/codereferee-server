@@ -99,7 +99,8 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                        repository_url, branch, commit_sha, email, chaos_mode, deployment_profile, ai_reports
                 FROM task_status
                 WHERE current_agent NOT IN (%s)
-                  AND updated_at < CASE WHEN current_agent = 'QUEUED' THEN ? ELSE ? END
+                  AND ((current_agent = 'QUEUED'  AND updated_at < ?)
+                    OR (current_agent <> 'QUEUED' AND updated_at < ?))
                 ORDER BY updated_at
                 LIMIT ?
                 """.formatted(TERMINAL_STATES),
