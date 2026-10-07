@@ -47,7 +47,6 @@ class ReportPdfRendererTest {
         assertThat(new String(pdf, 0, 4)).isEqualTo("%PDF");
         // 한글 TTF가 subset 임베드되면 글리프 데이터로 커진다. 두부 폴백(임베드 실패)이면 작다.
         assertThat(pdf.length).isGreaterThan(8000);
-        try { java.nio.file.Files.write(java.nio.file.Path.of("build","korean-check.pdf"), pdf); } catch (Exception ignored) {}
     }
 
     @Test
