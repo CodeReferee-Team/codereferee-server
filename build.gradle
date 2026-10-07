@@ -19,6 +19,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	// 완료 리포트를 메일로 보낸다. 발송은 SMTP(JavaMailSender), 첨부는 서버에서 만든 PDF다.
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	// aiReports → HTML → PDF. 순수 Java라 헤드리스 브라우저 컨테이너가 필요 없다.
+	implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'

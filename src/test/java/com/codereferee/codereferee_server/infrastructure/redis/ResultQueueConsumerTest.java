@@ -28,7 +28,8 @@ class ResultQueueConsumerTest {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final ResultQueueConsumer consumer = new ResultQueueConsumer(
             mock(org.springframework.data.redis.core.RedisTemplate.class),
-            taskStatusRepository, historyRepository, pipelineMetrics, objectMapper);
+            taskStatusRepository, historyRepository, pipelineMetrics, objectMapper,
+            mock(com.codereferee.codereferee_server.application.report.ReportDeliveryService.class));
 
     private TaskStatus queued(String taskId) {
         return new TaskStatus(taskId, AgentStep.JUDGING, false, 0, null,
