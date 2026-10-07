@@ -36,7 +36,8 @@ class ResultQueueConsumerMetricsTest {
     @SuppressWarnings("unchecked")
     private final ResultQueueConsumer consumer = new ResultQueueConsumer(
             mock(RedisTemplate.class), taskStatusRepository, historyRepository,
-            pipelineMetrics, objectMapper);
+            pipelineMetrics, objectMapper,
+            mock(com.codereferee.codereferee_server.application.report.ReportDeliveryService.class));
 
     private Timer validationTimer(AgentStep verdict) {
         return registry.find("codereferee.validation.duration").tag("result", verdict.name()).timer();

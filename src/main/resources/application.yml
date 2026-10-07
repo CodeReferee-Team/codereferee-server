@@ -10,6 +10,20 @@ spring:
       host: localhost
       port: 6379
 
+  # 리포트 메일 발송용 SMTP. 기본 host를 둬 JavaMailSender 빈이 항상 생기게 한다
+  # (없으면 ReportMailSender가 빈을 못 찾아 기동이 깨진다). 실제 발송은 report-mail.enabled로 막는다.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   datasource:
     url: jdbc:postgresql://localhost:5432/codereferee_test
     username: ryu
@@ -38,3 +52,11 @@ codereferee:
     sweep-interval: 1m
     queued-timeout: 60m   # 샌드박스가 동시 1건만 처리해 대기열이 길어질 수 있다
     running-timeout: 30m  # AI 측 샌드박스 작업 상한 15~20분보다 여유를 둔다
+
+# 완료 리포트 메일 발송. SMTP가 설정되지 않은 환경에서는 enabled=false로 꺼둔다.
+app:
+  report-mail:
+    enabled: ${REPORT_MAIL_ENABLED:false}
+    from: ${REPORT_MAIL_FROM:CodeReferee <noreply@codereferee.dev>}
+    # 로그인이 없어 임의 주소로 보낼 수 있다. 전역 시간당 상한으로 스팸 폭주를 막는다.
+    max-per-hour: ${REPORT_MAIL_MAX_PER_HOUR:100}

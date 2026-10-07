@@ -18,3 +18,7 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+  # JavaMailSender 빈이 컨텍스트 로드 때 생기도록 host만 둔다. report-mail.enabled 기본 false라 실제 발송은 없다.
+  mail:
+    host: localhost

@@ -4,6 +4,7 @@ import com.codereferee.codereferee_server.domain.validation.AgentStep;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusHistoryRepository;
 import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository;
+import com.codereferee.codereferee_server.application.report.ReportDeliveryService;
 import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
 import com.codereferee.codereferee_server.infrastructure.persistence.TaskStatusPgRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +42,7 @@ public class ResultQueueConsumer {
     private final TaskStatusHistoryRepository historyRepository;
     private final PipelineMetrics pipelineMetrics;
     private final ObjectMapper objectMapper;
+    private final ReportDeliveryService reportDeliveryService;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "result-queue-consumer");
@@ -152,6 +154,9 @@ public class ResultQueueConsumer {
                 .ifPresent(elapsed -> pipelineMetrics.recordValidationDuration(verdict, elapsed));
         taskStatusRepository.save(updated);
         historyRepository.upsert(updated);
+
+        // 종단 상태 저장이 끝난 뒤에만 발송한다. 발송은 best-effort라 결과 저장을 되돌리지 않는다.
+        reportDeliveryService.deliver(updated);
 
         log.info("[ResultQueue] taskId = {} -> {} reports = {}", taskId, verdict, aiReports.keySet());
 }
