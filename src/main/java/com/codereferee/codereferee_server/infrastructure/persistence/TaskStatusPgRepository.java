@@ -33,7 +33,7 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                     (task_id, current_agent, is_executable, iteration_count, error_message,
                      created_at, updated_at,
                      repository_url, branch, commit_sha, email, chaos_mode, deployment_profile, ai_reports)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
                 ON CONFLICT (task_id) DO UPDATE SET
                     current_agent   = EXCLUDED.current_agent,
                     is_executable   = EXCLUDED.is_executable,
