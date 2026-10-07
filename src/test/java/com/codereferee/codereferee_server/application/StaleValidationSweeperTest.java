@@ -35,7 +35,7 @@ class StaleValidationSweeperTest {
     private TaskStatus stuck(String taskId, AgentStep step) {
         return new TaskStatus(taskId, step, false, 0, null,
                 NOW.minusHours(3), NOW.minusHours(2),
-                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e", ChaosOptions.NONE, null);
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e", null, ChaosOptions.NONE, null);
     }
 
     @Test

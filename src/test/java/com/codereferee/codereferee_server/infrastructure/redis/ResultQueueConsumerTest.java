@@ -34,7 +34,7 @@ class ResultQueueConsumerTest {
         return new TaskStatus(taskId, AgentStep.JUDGING, false, 0, null,
                 LocalDateTime.of(2026, 8, 3, 11, 55), LocalDateTime.of(2026, 8, 3, 12, 0),
                 "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
-                ChaosOptions.NONE, null);
+                null, ChaosOptions.NONE, null);
     }
 
     @Test
@@ -122,7 +122,7 @@ class ResultQueueConsumerTest {
         TaskStatus done = new TaskStatus("t5", AgentStep.PASSED, true, 1, null,
                 LocalDateTime.of(2026, 8, 3, 11, 55), LocalDateTime.of(2026, 8, 3, 12, 0),
                 "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
-                ChaosOptions.NONE, null);
+                null, ChaosOptions.NONE, null);
         when(taskStatusRepository.findById("t5")).thenReturn(Optional.of(done));
 
         consumer.process(Map.of("type", "progress", "request_id", "t5", "step", "BASELINE"));

@@ -34,7 +34,7 @@ class RefereeServiceTest {
 
     @Test
     void submitStoresQueuedStatusAndEnqueuesTask() {
-        String requestId = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
+        String requestId = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null, null);
 
         ArgumentCaptor<TaskStatus> statusCaptor = ArgumentCaptor.forClass(TaskStatus.class);
         verify(taskStatusRepository).save(statusCaptor.capture());
@@ -58,8 +58,8 @@ class RefereeServiceTest {
     @Test
     void submitAlwaysIssuesServerSideRequestId() {
 
-        String first = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
-        String second = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
+        String first = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null, null);
+        String second = refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null, null);
 
         assertThat(first).isNotBlank();
         assertThat(second).isNotBlank();
@@ -68,7 +68,7 @@ class RefereeServiceTest {
 
     @Test
     void chaosOptionsArePreservedInTheStoredStatus() {
-        refereeService.submit(REPO_URL, BRANCH, COMMIT, "litmus_pod_delete", "quickbyte-demo");
+        refereeService.submit(REPO_URL, BRANCH, COMMIT, "litmus_pod_delete", "quickbyte-demo", null);
 
         ArgumentCaptor<TaskStatus> captor = ArgumentCaptor.forClass(TaskStatus.class);
         verify(taskStatusRepository).save(captor.capture());
@@ -82,11 +82,34 @@ class RefereeServiceTest {
 
     @Test
     void absentChaosOptionsBecomeNoneNotNull() {
-        refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null);
+        refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null, null);
 
         ArgumentCaptor<TaskStatus> captor = ArgumentCaptor.forClass(TaskStatus.class);
         verify(taskStatusRepository).save(captor.capture());
         assertThat(captor.getValue().chaosOptions()).isEqualTo(ChaosOptions.NONE);
+    }
+
+    @Test
+    void emailIsStoredOnTheStatusForLaterDelivery() {
+        // 완료 시 PDF 리포트를 보낼 주소. 제출 때 받아 task에 실어 둬야
+        // 결과가 돌아온 뒤 ResultQueueConsumer가 읽어 보낼 수 있다.
+        refereeService.submit(REPO_URL, BRANCH, COMMIT, null, null, "dev@example.com");
+
+        ArgumentCaptor<TaskStatus> captor = ArgumentCaptor.forClass(TaskStatus.class);
+        verify(taskStatusRepository).save(captor.capture());
+        assertThat(captor.getValue().email()).isEqualTo("dev@example.com");
+    }
+
+    @Test
+    void emailIsPreservedAcrossTransitions() {
+        // 제출 때 받은 주소가 단계 전이·AI 결과 반영 뒤에도 살아 있어야
+        // 종단 상태에서 발송할 수 있다.
+        TaskStatus queued = TaskStatus.queued(
+                "t-mail", REPO_URL, BRANCH, COMMIT, "dev@example.com", ChaosOptions.NONE, null);
+
+        assertThat(queued.withStep(AgentStep.JUDGING).email()).isEqualTo("dev@example.com");
+        assertThat(queued.withAiResult(AgentStep.PASSED, true, null, null).email())
+                .isEqualTo("dev@example.com");
     }
 
     @Test

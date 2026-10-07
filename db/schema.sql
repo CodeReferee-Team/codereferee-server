@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS task_status (
     repository_url  TEXT,
     branch          VARCHAR(255),
     commit_sha      VARCHAR(64),
+    email           VARCHAR(254),  -- 선택. 완료 시 PDF 리포트를 보낼 주소
     chaos_mode      VARCHAR(64),  -- 샌드박스 어휘. BE는 형식만 보고 보존한다
     deployment_profile VARCHAR(64),
     ai_reports      JSONB
@@ -32,3 +33,4 @@ ALTER TABLE task_status ADD COLUMN IF NOT EXISTS chaos_mode VARCHAR(64);
 ALTER TABLE task_status ADD COLUMN IF NOT EXISTS deployment_profile VARCHAR(64);
 -- NOT NULL로 두면 기존 행에 넣을 참값이 없다. 소요시간은 created_at이 있는 행만 집계한다.
 ALTER TABLE task_status ADD COLUMN IF NOT EXISTS created_at TIMESTAMP;
+ALTER TABLE task_status ADD COLUMN IF NOT EXISTS email VARCHAR(254);

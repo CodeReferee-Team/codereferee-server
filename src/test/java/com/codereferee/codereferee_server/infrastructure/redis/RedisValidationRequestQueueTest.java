@@ -22,7 +22,7 @@ class RedisValidationRequestQueueTest {
     private final RedisValidationRequestQueue queue = new RedisValidationRequestQueue(redisTemplate);
 
     private TaskStatus queued(ChaosOptions chaos) {
-        return TaskStatus.queued("task-1", REPO, "main", "d1c5c5e", chaos, SUBMITTED_AT);
+        return TaskStatus.queued("task-1", REPO, "main", "d1c5c5e", null, chaos, SUBMITTED_AT);
     }
 
     @Test
