@@ -61,10 +61,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 변수가 아니라 시크릿이다. 변수는 로그에 그대로 찍히지만 시크릿은
+      # 마스킹된다. 이 레포가 public 이라 Actions 로그도 공개된다.
+      - name: Check role ARN is configured
+        env:
+          ROLE: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          [ -n "$ROLE" ] || {
+            echo "::error::AWS_ROLE_ARN 시크릿이 없다. Settings > Secrets and variables > Actions 에서 추가한다."
+            exit 1
+          }
+
       - name: Assume AWS role via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::063103766378:role/codereferee-gha-server
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: gha-${{ github.run_id }}
           aws-region: ap-northeast-2
 

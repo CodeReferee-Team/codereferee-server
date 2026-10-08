@@ -44,7 +44,9 @@ management:
   endpoints:
     web:
       exposure:
-        include: prometheus
+        # health는 배포 확인과 compose 헬스체크에 쓴다. show-details 기본값이
+        # never라 응답은 {"status":"UP"}뿐이고 내부 구성은 드러나지 않는다.
+        include: prometheus,health
 
 # 결과가 끝내 도착하지 않은 요청을 ERROR로 확정하는 기준 (StaleValidationSweeper)
 codereferee:
