@@ -36,6 +36,8 @@ public class PipelineMetrics {
         for (AgentStep step : AgentStep.values()) {
             if (step.isTerminal()) {
                 verdictCounter(step);
+                // 반대로 늦게 온 결과는 종결 상태에만 도착하므로 비종결 태그가 생기지 않는다.
+                lateResultCounter(step);
             } else {
                 // 스위퍼는 비종결 상태만 정리하므로 종결 상태 태그는 생기지 않는다.
                 sweptCounter(step);
@@ -54,6 +56,13 @@ public class PipelineMetrics {
         return Counter.builder("codereferee.sweeper.swept")
                 .description("Requests the sweeper gave up on, by the stage they were left in")
                 .tag("from", from.name())
+                .register(registry);
+    }
+
+    private Counter lateResultCounter(AgentStep terminal) {
+        return Counter.builder("codereferee.late.results")
+                .description("Result messages that arrived after the request was already terminal")
+                .tag("terminal", terminal.name())
                 .register(registry);
     }
 
@@ -106,5 +115,16 @@ public class PipelineMetrics {
      */
     public void recordSweptToError(AgentStep from) {
         sweptCounter(from).increment();
+    }
+
+    /**
+     * 종결된 요청에 늦게 도착해 버린 결과 메시지 수. 태그는 그 요청이 이미 머물던 종결 상태다.
+     *
+     * ERROR 태그가 늘면 스위퍼가 살아 있는 검증을 너무 일찍 포기했다는 뜻이라 임계값을
+     * 다시 봐야 하고, PASSED나 FAILED 태그가 늘면 같은 결과가 큐에 두 번 들어온 것이다.
+     * 지표가 없으면 로그를 뒤지기 전까지 둘 다 보이지 않는다.
+     */
+    public void recordLateResultDiscarded(AgentStep terminal) {
+        lateResultCounter(terminal).increment();
     }
 }

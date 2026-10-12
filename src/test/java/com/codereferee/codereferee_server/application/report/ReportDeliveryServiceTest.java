@@ -5,13 +5,19 @@ import com.codereferee.codereferee_server.domain.validation.ChaosOptions;
 import com.codereferee.codereferee_server.domain.validation.TaskStatus;
 import com.codereferee.codereferee_server.infrastructure.report.ReportMailSender;
 import com.codereferee.codereferee_server.infrastructure.report.ReportPdfRenderer;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.Duration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -75,6 +81,45 @@ class ReportDeliveryServiceTest {
         when(valueOps.increment(anyString())).thenReturn(101L); // 상한 100 초과
         service(true, 100).deliver(task("dev@example.com"));
         verify(mailSender, never()).send(any(), any(), any(), any());
+    }
+
+    /**
+     * 설정이 빠져 발송이 꺼져 있던 동안, 사용자는 주소를 넣었는데 메일이 오지 않고
+     * 서버 로그에도 흔적이 없었다. 조용한 리턴이라 원인을 찾는 데 오래 걸렸다.
+     * 이 변경의 동작은 로그 그 자체이므로 로그를 확인한다.
+     */
+    @Test
+    void warnsWhenEmailGivenButSendingIsDisabled() {
+        Logger logger = (Logger) LoggerFactory.getLogger(ReportDeliveryService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            service(false, 100).deliver(task("dev@example.com"));
+        } finally {
+            logger.detachAppender(appender);
+        }
+
+        assertThat(appender.list)
+                .filteredOn(event -> event.getLevel() == Level.WARN)
+                .singleElement()
+                .satisfies(event -> assertThat(event.getFormattedMessage()).contains("t1"));
+    }
+
+    /** 주소를 안 넣은 요청이 대다수다. 거기까지 경고를 남기면 로그가 쓸모없어진다. */
+    @Test
+    void staysQuietWhenNoEmailWasGiven() {
+        Logger logger = (Logger) LoggerFactory.getLogger(ReportDeliveryService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            service(false, 100).deliver(task(null));
+        } finally {
+            logger.detachAppender(appender);
+        }
+
+        assertThat(appender.list).isEmpty();
     }
 
     @Test

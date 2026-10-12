@@ -8,6 +8,7 @@ import com.codereferee.codereferee_server.domain.validation.TaskStatusRepository
 import com.codereferee.codereferee_server.infrastructure.metrics.PipelineMetrics;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -109,5 +110,55 @@ class ResultQueueConsumerMetricsTest {
         consumer.process(Map.of("type", "progress", "request_id", "t4", "step", "BASELINE"));
 
         assertThat(stageTimer(AgentStep.BASELINE)).isNull();
+    }
+
+    /**
+     * 종결된 요청에 결과가 늦게 와도 판정 카운터와 소요시간을 다시 올리면 안 된다.
+     * 한 요청이 ERROR와 FAILED 양쪽에 잡혀 대시보드의 판정 비율이 부풀어 오른다.
+     */
+    @Test
+    void lateResultDoesNotDoubleCountVerdictOrDuration() {
+        given(new TaskStatus("t5", AgentStep.ERROR, false, 0, "임계 시간 초과",
+                SUBMITTED, SUBMITTED.plusMinutes(31),
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "sha", null, ChaosOptions.NONE, null));
+
+        consumer.process(Map.of("request_id", "t5", "status", "fail"));
+
+        // 스위퍼가 올린 ERROR는 이 테스트의 레지스트리에 없다. FAILED가 생기지 않아야 한다.
+        assertThat(verdictCount(AgentStep.FAILED)).isZero();
+        assertThat(validationTimer(AgentStep.FAILED)).isNull();
+        assertThat(transitionCount(AgentStep.ERROR, AgentStep.FAILED)).isZero();
+        // 대신 버린 사실이 지표로 남는다. 로그를 뒤지지 않아도 보여야 한다.
+        assertThat(lateResultCount(AgentStep.ERROR)).isEqualTo(1.0);
+    }
+
+    /** 미리 등록해 둔 시계열이라 한 건도 없을 때 "No data"가 아니라 0으로 보여야 한다. */
+    @Test
+    void lateResultCountersStartAtZeroForEveryTerminalStep() {
+        for (AgentStep step : AgentStep.values()) {
+            if (step.isTerminal()) {
+                assertThat(lateResultCount(step)).isZero();
+            } else {
+                assertThat(registry.find("codereferee.late.results")
+                        .tag("terminal", step.name()).counter()).isNull();
+            }
+        }
+    }
+
+    private double verdictCount(AgentStep verdict) {
+        Counter counter = registry.find("codereferee.verdicts").tag("result", verdict.name()).counter();
+        return counter == null ? 0.0 : counter.count();
+    }
+
+    private double transitionCount(AgentStep from, AgentStep to) {
+        Counter counter = registry.find("codereferee.agent.transitions")
+                .tag("from", from.name()).tag("to", to.name()).counter();
+        return counter == null ? 0.0 : counter.count();
+    }
+
+    private double lateResultCount(AgentStep terminal) {
+        Counter counter = registry.find("codereferee.late.results")
+                .tag("terminal", terminal.name()).counter();
+        return counter == null ? -1.0 : counter.count();
     }
 }

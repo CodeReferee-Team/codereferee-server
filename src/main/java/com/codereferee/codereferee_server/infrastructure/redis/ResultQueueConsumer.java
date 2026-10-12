@@ -134,6 +134,26 @@ public class ResultQueueConsumer {
         TaskStatus current = taskStatusRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalStateException("TaskStatus를 찾을 수 없습니다. taskId = " + taskId));
 
+        // 종결 후 늦게 도착한 result는 무시한다. handleProgress와 같은 불변조건이다.
+        //
+        // 받아들이면 스위퍼가 ERROR(판정 불가)로 확정한 요청이 FAILED(코드 결함)로 뒤집힌다.
+        // 이 프로젝트가 가장 피하려는 방향이고, 운영에서 실제로 한 번 일어났다
+        // (codereferee_agent_transitions_total{from="ERROR",to="FAILED"}).
+        //
+        // 한 요청이 verdict와 소요시간을 두 번 올려 대시보드도 틀어지고, 메일 중복 방지
+        // 키(1시간)가 만료된 뒤라면 리포트가 한 번 더 나간다.
+        //
+        // 늦게 온 결과가 더 정확하지 않냐는 반론이 가능하지만, 스위퍼 임계값은 진행 중
+        // 30분이고 정상 완주는 72초, 3라운드 최악도 290초다. 그보다 늦은 결과를 믿을
+        // 근거가 약하다. info가 아니라 warn인 이유는 중복 메시지이거나 임계값이 너무
+        // 빡빡하다는 신호여서 둘 다 사람이 봐야 하기 때문이다.
+        if (current.currentAgent().isTerminal()) {
+            pipelineMetrics.recordLateResultDiscarded(current.currentAgent());
+            log.warn("[ResultQueue] taskId = {} 는 이미 {} 로 확정됐습니다. 늦게 온 결과(status={})는 버립니다.",
+                    taskId, current.currentAgent(), msg.status());
+            return;
+        }
+
         AgentStep verdict = mapVerdict(msg.status());
         String errorMessage = switch (verdict) {
             case PASSED -> null;

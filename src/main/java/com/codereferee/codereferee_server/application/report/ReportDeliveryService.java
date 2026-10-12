@@ -49,9 +49,21 @@ public class ReportDeliveryService {
     /** 종단 상태 저장 직후 호출한다. 어떤 경우에도 예외를 던지지 않는다. */
     public void deliver(TaskStatus task) {
         try {
-            if (!properties.enabled()) return;
+            // 주소가 없으면 할 말이 없으므로 조용히 끝낸다. 대다수 요청이 여기다.
             String email = task.email();
             if (email == null || email.isBlank()) return;
+
+            // 주소를 받았는데 꺼져 있는 것은 다르다. 사용자는 화면에서 "검증이 끝나면
+            // PDF 리포트를 보내요"를 보고 주소를 넣었고, 우리는 그 약속을 지키지 않는다.
+            //
+            // 이 줄이 원래 아무 로그 없이 리턴해서, 운영에서 메일이 안 오는데 서버 로그에
+            // 흔적조차 없는 상태였다. 아래 모든 경로에는 로그가 있는데 여기만 없었다.
+            // 설정이 빠진 것과 발송이 실패한 것은 고치는 방법이 다르므로 구분해서 남긴다.
+            if (!properties.enabled()) {
+                log.warn("[ReportMail] task={} 주소를 받았지만 발송이 꺼져 있습니다 (app.report-mail.enabled=false)",
+                        task.taskId());
+                return;
+            }
 
             if (!claimOnce(task.taskId())) {
                 log.debug("[ReportMail] task={} 이미 발송(또는 진행) — 건너뜀", task.taskId());
