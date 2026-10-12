@@ -134,6 +134,39 @@ class ResultQueueConsumerTest {
     }
 
     @Test
+    void resultAfterTerminalIsIgnored() {
+        // 스위퍼가 ERROR(판정 불가)로 확정한 뒤 샌드박스 결과가 뒤늦게 도착한 상황.
+        // 받아들이면 FAILED(코드 결함)로 뒤집힌다. 운영 전이 카운터에 실제로 찍혔다.
+        TaskStatus swept = new TaskStatus("t7", AgentStep.ERROR, false, 0,
+                "결과를 받지 못한 채 임계 시간을 초과했습니다",
+                LocalDateTime.of(2026, 8, 3, 11, 55), LocalDateTime.of(2026, 8, 3, 12, 30),
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
+                null, ChaosOptions.NONE, null);
+        when(taskStatusRepository.findById("t7")).thenReturn(Optional.of(swept));
+
+        consumer.process(Map.of("request_id", "t7", "status", "fail"));
+
+        verify(taskStatusRepository, never()).save(any());
+        verify(historyRepository, never()).upsert(any());
+    }
+
+    @Test
+    void duplicateResultForAFinishedTaskIsIgnored() {
+        // 같은 결과가 큐에 두 번 들어온 경우. 판정은 그대로지만 메일 중복 방지 키가
+        // 만료된 뒤라면 리포트가 한 번 더 나가므로 여기서 끊어야 한다.
+        TaskStatus done = new TaskStatus("t8", AgentStep.PASSED, true, 0, null,
+                LocalDateTime.of(2026, 8, 3, 11, 55), LocalDateTime.of(2026, 8, 3, 12, 0),
+                "https://github.com/phdcoco/QuickByte_Demo", "main", "d1c5c5e",
+                null, ChaosOptions.NONE, null);
+        when(taskStatusRepository.findById("t8")).thenReturn(Optional.of(done));
+
+        consumer.process(Map.of("request_id", "t8", "status", "success"));
+
+        verify(taskStatusRepository, never()).save(any());
+        verify(historyRepository, never()).upsert(any());
+    }
+
+    @Test
     void unknownMessageTypeIsIgnored() {
         consumer.process(Map.of("type", "heartbeat", "request_id", "t6"));
 
