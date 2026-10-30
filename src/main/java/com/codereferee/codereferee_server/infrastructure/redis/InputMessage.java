@@ -9,5 +9,6 @@ public record InputMessage(
         String commitSha,
         String chaosMode,
         String deploymentProfile,
+        Integer targetUsers,
         LocalDateTime submittedAt
 ) {}

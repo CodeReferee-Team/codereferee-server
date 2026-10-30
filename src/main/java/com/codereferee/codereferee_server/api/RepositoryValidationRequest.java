@@ -2,6 +2,8 @@ package com.codereferee.codereferee_server.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -25,6 +27,11 @@ public record RepositoryValidationRequest(
         @Size(max = 64)
         @Pattern(regexp = "[a-z0-9-]+", message = "deployment_profile은 소문자, 숫자, 하이픈만 쓸 수 있습니다")
         @JsonProperty("deployment_profile") String deploymentProfile,
+
+        // 선택. 예상 동시 사용자 수. 샌드박스 부하 단계 상한(500)과 같다.
+        @Min(value = 1, message = "target_users는 1 이상이어야 합니다")
+        @Max(value = 500, message = "target_users는 500 이하여야 합니다")
+        @JsonProperty("target_users") Integer targetUsers,
 
         // 선택. 입력하면 완료 시 이 주소로 PDF 리포트를 보낸다. 형식만 본다.
         @Size(max = 254)

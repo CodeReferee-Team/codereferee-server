@@ -55,6 +55,18 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void targetUsersOutsideTheLoadRangeIsRejectedAtTheBoundary() throws Exception {
+        // 샌드박스 부하 단계는 1~500명이다. 넘는 값은 샌드박스까지 가서 실패하기 전에 막는다.
+        for (String value : new String[]{"0", "501"}) {
+            mockMvc.perform(post("/api/validations/repository")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"repository_url\": \"https://github.com/o/r\", \"target_users\": " + value + "}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+        }
+    }
+
+    @Test
     void malformedJsonReturns400() throws Exception {
         mockMvc.perform(post("/api/validations/repository")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -72,7 +84,7 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void unexpectedErrorReturns500WithoutInternalDetails() throws Exception {
-        given(refereeService.submit(any(), any(), any(), any(), any(), any()))
+        given(refereeService.submit(any(), any(), any(), any(), any(), any(), any()))
                 .willThrow(new RuntimeException("connection to db failed at 10.0.3.7:5432"));
 
         mockMvc.perform(post("/api/validations/repository")

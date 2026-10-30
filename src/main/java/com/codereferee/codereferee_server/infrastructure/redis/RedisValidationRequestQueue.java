@@ -21,7 +21,7 @@ public class RedisValidationRequestQueue implements ValidationRequestQueue {
         ChaosOptions chaos = initial.chaosOptions();
         InputMessage message = new InputMessage(
                 initial.taskId(), initial.repositoryUrl(), initial.branch(), initial.commitSha(),
-                chaos.mode(), chaos.deploymentProfile(), initial.updatedAt()
+                chaos.mode(), chaos.deploymentProfile(), chaos.targetUsers(), initial.updatedAt()
         );
 
         redisTemplate.opsForList().rightPush(QUEUE_KEY, message);

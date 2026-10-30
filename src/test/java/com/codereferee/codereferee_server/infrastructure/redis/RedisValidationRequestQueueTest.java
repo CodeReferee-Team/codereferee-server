@@ -32,7 +32,7 @@ class RedisValidationRequestQueueTest {
         queue.enqueue(queued(ChaosOptions.NONE));
 
         verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
-                new InputMessage("task-1", REPO, "main", "d1c5c5e", null, null, SUBMITTED_AT));
+                new InputMessage("task-1", REPO, "main", "d1c5c5e", null, null, null, SUBMITTED_AT));
     }
 
     @Test
@@ -44,6 +44,17 @@ class RedisValidationRequestQueueTest {
         // 옵션이 조용히 누락되면 샌드박스가 일반 검증으로 돌아버린다. 값까지 확인한다.
         verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
                 new InputMessage("task-1", REPO, "main", "d1c5c5e",
-                        "litmus_pod_delete", "quickbyte-demo", SUBMITTED_AT));
+                        "litmus_pod_delete", "quickbyte-demo", null, SUBMITTED_AT));
+    }
+
+    @Test
+    void targetUsersRideAlongToTheQueue() {
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+
+        queue.enqueue(queued(ChaosOptions.of("suite_standard", null, 100)));
+
+        // 빠지면 요청자가 정한 기준 없이 측정값만 나가서 Fail이 될 수 없다.
+        verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
+                new InputMessage("task-1", REPO, "main", "d1c5c5e", "suite_standard", null, 100, SUBMITTED_AT));
     }
 }
