@@ -1,6 +1,6 @@
 # codereferee-server
 
-CodeReferee 플랫폼의 Spring Boot 백엔드. 레포지토리 검증 요청을 수신해 requestId를 부여하고, Redis 큐로 AI 모듈에 전달하며, 결과 큐로 돌아온 진행 이벤트와 최종 리포트를 영속화한다. BE는 샌드박스와 K8s를 모르고, AI 모듈을 HTTP로 직접 호출하지 않는다 — 두 모듈 사이의 통로는 Redis 큐뿐이다.
+CodeReferee 플랫폼의 Spring Boot 백엔드. CodeReferee는 GitHub 레포가 사용자가 늘고 장애가 나도 버티는지 검사한다. 이 서버는 레포지토리 검증 요청을 수신해 requestId를 부여하고, Redis 큐로 AI 모듈에 전달하며, 결과 큐로 돌아온 진행 이벤트와 최종 리포트를 영속화한다. BE는 샌드박스와 K8s를 모르고, AI 모듈을 HTTP로 직접 호출하지 않는다 — 두 모듈 사이의 통로는 Redis 큐뿐이다.
 
 ## MVP Scope
 
@@ -118,8 +118,8 @@ curl -X POST http://localhost:8080/api/validations/repository \
     "repository_url": "https://github.com/CodeReferee-Team/codereferee-AI",
     "branch": "main",
     "commit_sha": "a1b2c3d",
-    "chaos_mode": "pod_delete",
-    "deployment_profile": "fixture-api"
+    "chaos_mode": "suite_standard",
+    "target_users": 100
   }'
 # 202 Accepted: {"requestId": "uuid"}
 ```
@@ -132,7 +132,10 @@ curl -X POST http://localhost:8080/api/validations/repository \
 | `branch` | | 브랜치 |
 | `commit_sha` | | 커밋. 이력 조회 키로 쓰인다 |
 | `chaos_mode` | | 카오스 실험 선택. 소문자·숫자·밑줄, 64자 이내 |
-| `deployment_profile` | | 배포 프로필. 소문자·숫자·하이픈, 64자 이내 |
+| `deployment_profile` | | 배포 프로필. 소문자·숫자·하이픈, 64자 이내. 비우면 샌드박스가 레포에서 자동으로 찾는다 |
+| `target_users` | | 예상 동시 사용자 수(1~500). 넣으면 부하 시나리오가 그 인원을 꼭 재고, 그 인원에서 실패하면 FAILED가 된다 |
+
+`chaos_mode`에는 검사 묶음(`suite_quick` · `suite_standard` · `suite_deep`)이나 단일 시나리오(예: `load_concurrent_users`, `litmus_container_kill`)를 넣는다. 목록은 `codereferee-sandbox` README에 있다.
 
 카오스 옵션의 의미는 BE가 모른다. 어떤 실험이 존재하는지는 샌드박스가 알고 유효한 조합인지는 AI가 판정하므로, BE는 **형식만** 보고 그대로 전달·보존한다. 형식 위반은 400 `VALIDATION_FAILED`로 돌려준다.
 
@@ -158,7 +161,7 @@ curl http://localhost:8080/api/validations/{requestId}
 | `createdAt` | 접수 시각. 전이마다 덮어쓰이지 않으므로 요청 전체 소요시간의 기준이 된다 |
 | `updatedAt` | 마지막 전이 시각 |
 | `repositoryUrl` · `branch` · `commitSha` | 요청 원본 |
-| `chaosOptions` | 요청받은 `mode` / `deploymentProfile` 그대로 |
+| `chaosOptions` | 요청받은 `mode` / `deploymentProfile` / `targetUsers` 그대로 |
 | `aiReports` | AI 모듈이 보낸 리포트. `preflight_report` · `execution_result` · `judge_report` · `critic_feedback` · `refiner_report` · `validation_plan` · `metrics` · `events` 중 값이 있는 것만 담긴다 |
 
 **상태 머신 (AgentStep)**
@@ -167,8 +170,8 @@ curl http://localhost:8080/api/validations/{requestId}
 QUEUED → PREFLIGHT → BASELINE → CHAOS → JUDGING → (REFINING → BASELINE ...) → PASSED | FAILED | ERROR
 ```
 
-- `PASSED` / `FAILED` — 코드에 대한 판정. FAILED는 Critic/Refiner 루프를 거친 최종 실패다.
-- `ERROR` — 인프라·파이프라인 오류로 판정 불가. 코드 결함이 아니므로 Critic 분석 대상이 아니다.
+- `PASSED` / `FAILED` — 안정성 판정. 부하와 장애 주입을 버텼는지 본다. FAILED는 Critic/Refiner 루프를 거친 최종 실패이고, 검증된 수정안이 있으면 `aiReports`에 함께 담긴다.
+- `ERROR` — 판정 불가. 설치·테스트·기동이 실패해 안정성을 잴 수 없었거나 인프라 오류가 난 경우다. Critic 분석 대상이 아니다.
 
 ### 재검사 이력 조회
 
@@ -300,6 +303,6 @@ output 큐 메시지는 `type` 필드로 구분한다. **`type`이 없으면 `re
 | `progress` | 단계 전환마다 오는 중간 이벤트. `step`은 AgentStep의 비종결 값이고, REFINING이면 `round` / `max_rounds`가 함께 실려 온다. BE는 폴링 응답에 즉시 반영하되 **종결된 요청에 늦게 온 progress는 무시**한다. 유실은 허용 — 다음 이벤트와 최종 결과가 따라잡는다 | `ProgressEventMessage` |
 | `result` | 최종 결과, 요청당 1건 | `SandboxResultMessage` |
 
-결과 메시지 `status` 값: `success`(PASSED) · `fail`(FAILED, 코드 결함) · `error`/`infra_error`(ERROR, 판정 불가 — Critic 루프 제외). 그 밖의 값은 FAILED로 떨어진다.
+결과 메시지 `status` 값: `success`(PASSED) · `fail`(FAILED, 안정성 실패) · `error`/`infra_error`(ERROR, 판정 불가 — Critic 루프 제외). 그 밖의 값은 FAILED로 떨어진다.
 
 AI 모듈이 준비되기 전까지는 `MockAiWorker`(`mock-ai` 프로필)가 이 계약의 AI 쪽을 대신 이행한다. 레포지토리 URL에 `fail`이 들어 있으면 FAILED, `infra`가 들어 있으면 ERROR 시나리오를 재현한다.
