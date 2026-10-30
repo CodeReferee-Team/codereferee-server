@@ -25,6 +25,7 @@ public class RefereeController {
                 request.commitSha(),
                 request.chaosMode(),
                 request.deploymentProfile(),
+                request.targetUsers(),
                 request.email()
         );
         return ResponseEntity.accepted().body(Map.of("requestId", requestId));
