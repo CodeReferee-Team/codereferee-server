@@ -162,7 +162,7 @@ curl http://localhost:8080/api/validations/{requestId}
 | `updatedAt` | 마지막 전이 시각 |
 | `repositoryUrl` · `branch` · `commitSha` | 요청 원본 |
 | `chaosOptions` | 요청받은 `mode` / `deploymentProfile` / `targetUsers` 그대로 |
-| `aiReports` | AI 모듈이 보낸 리포트. `preflight_report` · `execution_result` · `judge_report` · `critic_feedback` · `refiner_report` · `validation_plan` · `metrics` · `events` 중 값이 있는 것만 담긴다 |
+| `aiReports` | AI 모듈이 보낸 리포트. `preflight_report` · `execution_result` · `judge_report` · `critic_feedback` · `refiner_report` · `refine_rounds` · `validation_plan` · `metrics` · `events`를 저장한다. `refine_rounds`는 전달된 빈 목록도 보존하며, 필드가 없는 기존 결과도 수신한다 |
 
 **상태 머신 (AgentStep)**
 

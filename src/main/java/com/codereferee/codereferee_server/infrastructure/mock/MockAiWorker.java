@@ -168,7 +168,8 @@ public class MockAiWorker {
                 criticFeedback,
                 null,
                 Map.of("cpu_p95", 0.42, "restart_count", 0),
-                events
+                events,
+                null
         );
     }
 

@@ -19,5 +19,6 @@ public record SandboxResultMessage(
         @JsonProperty("critic_feedback")  Map<String, Object> criticFeedback,
         @JsonProperty("refiner_report")   Map<String, Object> refinerReport,
         @JsonProperty("metrics")          Map<String, Object> metrics,
-        @JsonProperty("events")           List<String> events
+        @JsonProperty("events")           List<String> events,
+        @JsonProperty("refine_rounds")    List<Map<String, Object>> refineRounds
 ) {}
