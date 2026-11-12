@@ -209,6 +209,7 @@ public class ResultQueueConsumer {
         putIfNotEmpty(reports, "metrics",         msg.metrics());
         List<String> events = msg.events();
         if (events != null && !events.isEmpty())             reports.put("events", events);
+        if (msg.refineRounds() != null) reports.put("refine_rounds", msg.refineRounds());
         return reports;
     }
 

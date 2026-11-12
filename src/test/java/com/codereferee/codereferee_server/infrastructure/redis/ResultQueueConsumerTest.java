@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,6 +21,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 class ResultQueueConsumerTest {
+
+    @Test
+    void refinementRoundsSurviveResultDeserializationAndPersistence() {
+        when(taskStatusRepository.findById("refined")).thenReturn(Optional.of(queued("refined")));
+        List<Map<String, Object>> rounds = List.of(
+                Map.of("round", 1, "patch_repository", "backend", "after_judge_status", "Fail"),
+                Map.of("round", 2, "patch_repository", "main", "after_judge_status", "Pass"));
+
+        consumer.process(Map.of("request_id", "refined", "status", "fail", "refine_rounds", rounds));
+
+        ArgumentCaptor<TaskStatus> captor = ArgumentCaptor.forClass(TaskStatus.class);
+        verify(taskStatusRepository).save(captor.capture());
+        TaskStatus saved = captor.getValue();
+        assertThat(saved.aiReports()).containsEntry("refine_rounds", rounds);
+        assertThat(saved.currentAgent()).isEqualTo(AgentStep.FAILED);
+        verify(historyRepository).upsert(saved);
+    }
 
     private final TaskStatusRepository taskStatusRepository = mock(TaskStatusRepository.class);
     private final TaskStatusHistoryRepository historyRepository = mock(TaskStatusHistoryRepository.class);
