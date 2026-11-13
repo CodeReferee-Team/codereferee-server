@@ -110,6 +110,26 @@ public class TaskStatusPgRepository implements TaskStatusHistoryRepository {
                 limit);
     }
 
+    /**
+     * created_at 이 NULL 인 옛 레코드는 양쪽 모두에서 빠진다. 비교 대상이 NULL 이면 조건이
+     * 참이 되지 않으므로 세지 않고, 호출부도 내 created_at 이 없으면 아예 묻지 않는다.
+     * idx_task_status_stale 이 비종결 행만 담은 부분 인덱스라 대상 집합이 먼저 좁혀진다.
+     */
+    @Override
+    public int countAheadOf(String taskId, LocalDateTime createdAt) {
+        Integer count = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM task_status
+                WHERE current_agent NOT IN (%s)
+                  AND task_id <> ?
+                  AND created_at < ?
+                """.formatted(TERMINAL_STATES),
+                Integer.class,
+                taskId,
+                Timestamp.valueOf(createdAt));
+        return count == null ? 0 : count;
+    }
+
     private RowMapper<TaskStatus> rowMapper() {
         return (ResultSet rs, int rowNum) -> new TaskStatus(
                 rs.getString("task_id"),

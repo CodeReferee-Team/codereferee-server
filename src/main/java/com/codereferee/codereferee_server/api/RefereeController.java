@@ -32,8 +32,9 @@ public class RefereeController {
     }
 
     @GetMapping("/{requestId}")
-    public ResponseEntity<TaskStatus> getStatus(@PathVariable String requestId) {
+    public ResponseEntity<ValidationStatusResponse> getStatus(@PathVariable String requestId) {
         return refereeService.getStatus(requestId)
+                .map(status -> ValidationStatusResponse.of(status, refereeService.queuedAhead(status)))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
