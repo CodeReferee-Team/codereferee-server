@@ -16,6 +16,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class RefereeServiceTest {
@@ -118,5 +119,34 @@ class RefereeServiceTest {
         when(taskStatusRepository.findById("task-1")).thenReturn(Optional.of(status));
 
         assertThat(refereeService.getStatus("task-1")).contains(status);
+    }
+
+    private TaskStatus at(AgentStep step, java.time.LocalDateTime createdAt) {
+        return new TaskStatus("task-1", step, false, 0, null, createdAt,
+                java.time.LocalDateTime.of(2026, 11, 14, 10, 5),
+                REPO_URL, BRANCH, COMMIT, null, ChaosOptions.NONE, null);
+    }
+
+    @Test
+    void queuedAheadCountsUnfinishedRequestsSubmittedEarlier() {
+        java.time.LocalDateTime created = java.time.LocalDateTime.of(2026, 11, 14, 10, 0);
+        when(historyRepository.countAheadOf("task-1", created)).thenReturn(3);
+
+        assertThat(refereeService.queuedAhead(at(AgentStep.QUEUED, created))).isEqualTo(3);
+    }
+
+    /** 이미 돌기 시작했으면 순번은 의미가 없다. 2초 폴링마다 COUNT를 돌릴 이유도 없다. */
+    @Test
+    void queuedAheadIsNotComputedOnceTheRequestIsRunning() {
+        assertThat(refereeService.queuedAhead(at(AgentStep.BASELINE,
+                java.time.LocalDateTime.of(2026, 11, 14, 10, 0)))).isNull();
+        verifyNoInteractions(historyRepository);
+    }
+
+    /** 접수 시각을 모르는 옛 레코드는 순서를 정할 수 없다. 0으로 메우면 조용히 틀린다. */
+    @Test
+    void queuedAheadIsUnknownWithoutASubmissionTime() {
+        assertThat(refereeService.queuedAhead(at(AgentStep.QUEUED, null))).isNull();
+        verifyNoInteractions(historyRepository);
     }
 }

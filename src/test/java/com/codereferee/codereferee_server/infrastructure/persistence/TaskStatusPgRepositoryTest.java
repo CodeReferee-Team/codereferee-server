@@ -105,4 +105,34 @@ class TaskStatusPgRepositoryTest {
         assertThat(ids).contains("stale-queued");
         assertThat(ids).doesNotContain("fresh-queued", "done");
     }
+
+    /**
+     * 대기 순번. 나보다 먼저 접수되어 아직 끝나지 않은 것만 센다.
+     *
+     * 진행 중(BASELINE)도 세는 이유는 샌드박스가 한 번에 한 건만 처리하기 때문이다.
+     * 지금 돌고 있는 그 한 건도 내 차례 전에 끝나야 하므로 내 앞이다.
+     */
+    @Test
+    void countAheadOfCountsEarlierUnfinishedRequestsOnly() {
+        LocalDateTime base = LocalDateTime.of(2026, 11, 14, 10, 0);
+        String repo = "https://github.com/o/queue";
+        // rebuild가 createdAt을 보존하므로 전이 후에도 접수 순서는 그대로다.
+        repository.upsert(queuedAt("ahead-queued", repo, base.minusMinutes(3)));
+        repository.upsert(queuedAt("ahead-running", repo, base.minusMinutes(2))
+                .withProgress(AgentStep.BASELINE, 0));
+        repository.upsert(queuedAt("ahead-done", repo, base.minusMinutes(1))
+                .withAiResult(AgentStep.PASSED, true, null, Map.of()));
+        repository.upsert(queuedAt("me", repo, base));
+        repository.upsert(queuedAt("behind-queued", repo, base.plusMinutes(1)));
+
+        // 앞의 QUEUED 하나와 진행 중 하나. 끝난 것과 뒤에 온 것과 나 자신은 빠진다.
+        assertThat(repository.countAheadOf("me", base)).isEqualTo(2);
+        // 맨 앞은 0이어야 한다. 1부터 세면 "바로 다음 차례"를 영영 못 보여준다.
+        assertThat(repository.countAheadOf("ahead-queued", base.minusMinutes(3))).isZero();
+    }
+
+    private TaskStatus queuedAt(String taskId, String repositoryUrl, LocalDateTime createdAt) {
+        return TaskStatus.queued(taskId, repositoryUrl, "main", "sha-q",
+                null, ChaosOptions.NONE, createdAt);
+    }
 }
