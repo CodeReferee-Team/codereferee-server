@@ -13,6 +13,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RedisValidationRequestQueueTest {
+    @Test
+    void uploadedYamlSurvivesTheQueueContract() {
+        when(redisTemplate.opsForList()).thenReturn(listOperations);
+        String yaml = "version: 1\nservice: {port: 8000}\n";
+        queue.enqueue(queued(ChaosOptions.NONE), yaml);
+        verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
+                new InputMessage("task-1", REPO, "main", "d1c5c5e", null, null, null, SUBMITTED_AT, yaml));
+    }
 
     private static final LocalDateTime SUBMITTED_AT = LocalDateTime.of(2026, 5, 21, 16, 0);
     private static final String REPO = "https://github.com/phdcoco/QuickByte_Demo";
@@ -29,32 +37,32 @@ class RedisValidationRequestQueueTest {
     void enqueueConvertsStatusToQueueContractMessage() {
         when(redisTemplate.opsForList()).thenReturn(listOperations);
 
-        queue.enqueue(queued(ChaosOptions.NONE));
+        queue.enqueue(queued(ChaosOptions.NONE), null);
 
         verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
-                new InputMessage("task-1", REPO, "main", "d1c5c5e", null, null, null, SUBMITTED_AT));
+                new InputMessage("task-1", REPO, "main", "d1c5c5e", null, null, null, SUBMITTED_AT, null));
     }
 
     @Test
     void chaosOptionsRideAlongToTheQueue() {
         when(redisTemplate.opsForList()).thenReturn(listOperations);
 
-        queue.enqueue(queued(ChaosOptions.of("litmus_pod_delete", "quickbyte-demo")));
+        queue.enqueue(queued(ChaosOptions.of("litmus_pod_delete", "quickbyte-demo")), null);
 
         // 옵션이 조용히 누락되면 샌드박스가 일반 검증으로 돌아버린다. 값까지 확인한다.
         verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
                 new InputMessage("task-1", REPO, "main", "d1c5c5e",
-                        "litmus_pod_delete", "quickbyte-demo", null, SUBMITTED_AT));
+                        "litmus_pod_delete", "quickbyte-demo", null, SUBMITTED_AT, null));
     }
 
     @Test
     void targetUsersRideAlongToTheQueue() {
         when(redisTemplate.opsForList()).thenReturn(listOperations);
 
-        queue.enqueue(queued(ChaosOptions.of("suite_standard", null, 100)));
+        queue.enqueue(queued(ChaosOptions.of("suite_standard", null, 100)), null);
 
         // 빠지면 요청자가 정한 기준 없이 측정값만 나가서 Fail이 될 수 없다.
         verify(listOperations).rightPush(RedisValidationRequestQueue.QUEUE_KEY,
-                new InputMessage("task-1", REPO, "main", "d1c5c5e", "suite_standard", null, 100, SUBMITTED_AT));
+                new InputMessage("task-1", REPO, "main", "d1c5c5e", "suite_standard", null, 100, SUBMITTED_AT, null));
     }
 }

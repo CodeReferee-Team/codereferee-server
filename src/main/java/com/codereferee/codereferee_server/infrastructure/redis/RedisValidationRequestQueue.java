@@ -16,12 +16,12 @@ public class RedisValidationRequestQueue implements ValidationRequestQueue {
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
-    public void enqueue(TaskStatus initial) {
+    public void enqueue(TaskStatus initial, String validationYaml) {
         // 도메인 상태 → 큐 계약 메시지 변환은 어댑터의 책임
         ChaosOptions chaos = initial.chaosOptions();
         InputMessage message = new InputMessage(
                 initial.taskId(), initial.repositoryUrl(), initial.branch(), initial.commitSha(),
-                chaos.mode(), chaos.deploymentProfile(), chaos.targetUsers(), initial.updatedAt()
+                chaos.mode(), chaos.deploymentProfile(), chaos.targetUsers(), initial.updatedAt(), validationYaml
         );
 
         redisTemplate.opsForList().rightPush(QUEUE_KEY, message);

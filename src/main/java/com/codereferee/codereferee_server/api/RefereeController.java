@@ -26,7 +26,8 @@ public class RefereeController {
                 request.chaosMode(),
                 request.deploymentProfile(),
                 request.targetUsers(),
-                request.email()
+                request.email(),
+                request.validationYaml()
         );
         return ResponseEntity.accepted().body(Map.of("requestId", requestId));
     }
@@ -37,6 +38,11 @@ public class RefereeController {
                 .map(status -> ValidationStatusResponse.of(status, refereeService.queuedAhead(status)))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/capabilities")
+    public Map<String, Object> capabilities() {
+        return Map.of("validationYaml", true, "validationYamlMaxBytes", 65536);
     }
 
     // 같은 repo, commit의 과거 검증 이력을 검사한다. 재검사 시 이전 리포트와 로그를 확인한다.
