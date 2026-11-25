@@ -1,6 +1,7 @@
 package com.codereferee.codereferee_server.infrastructure.redis;
 
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 public record InputMessage(
         String taskId,
@@ -10,5 +11,6 @@ public record InputMessage(
         String chaosMode,
         String deploymentProfile,
         Integer targetUsers,
-        LocalDateTime submittedAt
+        LocalDateTime submittedAt,
+        @JsonInclude(JsonInclude.Include.NON_NULL) String validationYaml
 ) {}

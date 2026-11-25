@@ -53,7 +53,7 @@ class RefereeServiceTest {
         verify(historyRepository).upsert(status);
 
         // 큐에는 저장된 것과 동일한 초기 상태가 전달된다.
-        verify(requestQueue).enqueue(status);
+        verify(requestQueue).enqueue(status, null);
     }
 
     @Test

@@ -11,6 +11,12 @@ CodeReferee 플랫폼의 Spring Boot 백엔드. CodeReferee는 GitHub 레포가 
 - PostgreSQL 기반 TaskStatus UPSERT 영속화 및 재검사 이력 조회
 - Prometheus 커스텀 메트릭 수집 파이프라인 (`/actuator/prometheus`)
 
+## 검증 설정 업로드
+
+기존 `POST /api/validations/repository` JSON에 선택 문자열 `validation_yaml`을 넣으면 Redis input의 `validationYaml`로 전달합니다. 파일 경로나 multipart 파일을 받지 않습니다. 최대 64KiB UTF-8이며 빈 값·NUL·`deployment_profile` 동시 지정은 거절합니다. YAML 스키마와 실행 설정은 Sandbox가 검증합니다. 설정이 없는 기존 URL 요청은 그대로 동작합니다.
+
+Frontend는 `GET /api/validations/capabilities`의 `validationYaml: true`를 확인한 뒤 업로드 입력을 활성화합니다. 사용자 GitHub에 파일을 커밋하지 않고 임시 실행 환경에만 적용합니다. 원문은 큐와 AI 작업 상태를 거치므로 운영 비밀값을 넣지 마세요. Sandbox·AI 업로드 지원을 먼저 배포한 뒤 Backend와 Frontend를 배포해야 합니다.
+
 ## Quick Start
 
 ### 사전 요구사항

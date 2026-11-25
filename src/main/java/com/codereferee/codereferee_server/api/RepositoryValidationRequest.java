@@ -1,6 +1,9 @@
 package com.codereferee.codereferee_server.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
+import java.nio.charset.StandardCharsets;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,5 +39,16 @@ public record RepositoryValidationRequest(
         // 선택. 입력하면 완료 시 이 주소로 PDF 리포트를 보낸다. 형식만 본다.
         @Size(max = 254)
         @Email(message = "email 형식이 올바르지 않습니다")
-        @JsonProperty("email") String email
-) {}
+        @JsonProperty("email") String email,
+
+        @Size(max = 65536)
+        @JsonProperty("validation_yaml") String validationYaml
+) {
+    @AssertTrue(message = "validation_yaml은 비어 있지 않은 64KiB 이하 UTF-8 텍스트여야 하며 배포 프로필과 함께 사용할 수 없습니다")
+    @JsonIgnore
+    public boolean isValidationYamlValid() {
+        return validationYaml == null || (!validationYaml.isBlank() && !validationYaml.contains("\0")
+                && validationYaml.getBytes(StandardCharsets.UTF_8).length <= 65536
+                && (deploymentProfile == null || deploymentProfile.isBlank()));
+    }
+}
